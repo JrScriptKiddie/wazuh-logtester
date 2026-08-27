@@ -1,0 +1,37 @@
+{
+  "name": "basic",
+  "description": "Decoder and single-rule verdicts (all cases pass).",
+  "session_mode": "per_test",
+  "tests": [
+    {
+      "name": "myapp login success",
+      "event": "Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=ok",
+      "expect": {
+        "decoder.name": "myapp_decoder",
+        "data.user": "alice",
+        "data.status": "ok",
+        "rule.id": "100100",
+        "alert": true
+      }
+    },
+    {
+      "name": "myapp login failed (child rule)",
+      "event": "Aug 27 10:00:01 myserver myapp[1234]: login user=bob status=failed",
+      "expect": {
+        "decoder.name": "myapp_decoder",
+        "rule.id": "100101",
+        "alert": true
+      }
+    },
+    {
+      "name": "myapp login locked (parent rule only)",
+      "event": "Aug 27 10:00:02 myserver myapp[1234]: login user=carol status=locked",
+      "expect": {
+        "decoder.name": "myapp_decoder",
+        "data.user": "carol",
+        "rule.id": "100100",
+        "alert": true
+      }
+    }
+  ]
+}

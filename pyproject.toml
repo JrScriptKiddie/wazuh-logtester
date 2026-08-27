@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wazuh-logtest-offline"
+version = "1.0.0"
+description = "Offline Wazuh logtest for students: debug decoders/rules and run log datasets with correlation verdicts"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+yaml = ["PyYAML>=6"]
+dev = ["pytest", "pytest-cov"]
+
+[project.scripts]
+wlogtest = "wlogtest.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["wlogtest*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: requires a live Wazuh logtest socket",
+]
+addopts = "-m 'not integration'"

@@ -1,0 +1,31 @@
+{
+  "name": "correlation",
+  "description": "Stateful session: all cases share one token; rule 100102 fires on the 3rd identical event.",
+  "session_mode": "shared",
+  "tests": [
+    {
+      "name": "login 1 of 3",
+      "event": "Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=ok",
+      "expect": {
+        "rule.id": "100100",
+        "alert": true
+      }
+    },
+    {
+      "name": "login 2 of 3",
+      "event": "Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=ok",
+      "expect": {
+        "rule.id": "100100",
+        "alert": true
+      }
+    },
+    {
+      "name": "login 3 of 3 (frequency rule fires)",
+      "event": "Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=ok",
+      "expect": {
+        "rule.id": "100102",
+        "alert": true
+      }
+    }
+  ]
+}

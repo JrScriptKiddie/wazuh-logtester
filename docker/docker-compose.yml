@@ -1,0 +1,81 @@
+# wazuh-logtest-offline stack (compose v2, versionless spec).
+#
+# This file lives in docker/; every relative path below is relative to THIS
+# directory, not to the directory compose is invoked from. That is why the
+# repo-root bind mounts are spelled "../..".
+#
+# Top-level "name" pins the compose project name (and therefore the named
+# volume name: wazuh-logtest-offline_wazuh-queue) no matter where compose is
+# invoked from.
+name: wazuh-logtest-offline
+
+services:
+  # The logtest engine: wazuh manager with analysisd + logtest server.
+  manager:
+    image: wazuh/wazuh-manager:4.14.7
+    volumes:
+      # Standard wazuh-docker config injection point. Read-only.
+      # Contains <rule_test> enabled (threads=2, max_sessions=64).
+      - ./config/ossec.conf:/wazuh-config-mount/etc/ossec.conf:ro
+      # Student decoders/rules from examples/ (user-defined ruleset dirs).
+      # Default decoders/rules stay untouched under /var/ossec/ruleset/.
+      - ../../examples/decoders:/var/ossec/etc/decoders:ro
+      - ../../examples/rules:/var/ossec/etc/rules:ro
+      # Named volume carries /var/ossec/queue incl. the logtest socket.
+      - wazuh-queue:/var/ossec/queue
+    healthcheck:
+      # Healthy as soon as the logtest AF_UNIX socket exists.
+      test: ["CMD-SHELL", "test -S /var/ossec/queue/sockets/logtest"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
+    restart: unless-stopped
+
+  # One-off dataset runner (stage 2 of docker/Dockerfile).
+  runner:
+    build:
+      context: ..          # repo root
+      dockerfile: Dockerfile
+    image: wlogtest-runner:latest
+    volumes:
+      # Shared logtest socket (read-only is enough to connect as root).
+      - wazuh-queue:/var/ossec/queue:ro
+      # Example datasets: /data/datasets/*.json
+      - ../../examples:/data:ro
+    depends_on:
+      manager:
+        condition: service_healthy
+    environment:
+      WAZUH_LOGTEST_SOCKET: /var/ossec/queue/sockets/logtest
+    # Entrypoint is `wlogtest`; this becomes `wlogtest run /data/datasets/basic.json`.
+    command: run /data/datasets/basic.json
+
+  # In-docker pytest image = the BUILDER stage of docker/Dockerfile
+  # (pytest + pytest-cov preinstalled, editable install of wlogtest).
+  # Profile "test": never started by plain `docker compose up`;
+  # used via `docker compose run runner-test ...` (see docker/test.sh).
+  runner-test:
+    profiles: ["test"]
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: builder
+    image: wlogtest-runner-builder:latest
+    volumes:
+      # Repo mounted rw so coverage data lands on the host checkout.
+      - ..:/src:rw
+      # Live socket -> integration tests exercise the real manager.
+      - wazuh-queue:/var/ossec/queue:ro
+    working_dir: /src
+    depends_on:
+      manager:
+        condition: service_healthy
+    environment:
+      WAZUH_LOGTEST_SOCKET: /var/ossec/queue/sockets/logtest
+      # Pin imports to the mounted tree: wins over the build-time editable
+      # install baked into the builder image (stale copy at /app).
+      PYTHONPATH: /src
+
+volumes:
+  wazuh-queue:

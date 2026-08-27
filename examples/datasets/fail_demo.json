@@ -1,0 +1,15 @@
+{
+  "name": "fail_demo",
+  "description": "Intentionally wrong expectations: demonstrates FAIL verdicts and exit code 1.",
+  "session_mode": "per_test",
+  "tests": [
+    {
+      "name": "expects a rule id that never fires",
+      "event": "Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=ok",
+      "expect": {
+        "rule.id": "100999",
+        "alert": true
+      }
+    }
+  ]
+}
