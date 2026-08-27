@@ -75,7 +75,7 @@ this).
 
 1. On a networked machine, once:
    `docker compose -f docker/docker-compose.yml build manager runner runner-test`
-   (the manager stage downloads the ~490MB wazuh-manager RPM; build-time only).
+   (the manager stage downloads the ~513MB wazuh-manager RPM; build-time only).
 2. `docker save wlogtest-manager:4.14.7 wlogtest-runner wlogtest-runner-builder
    python:3.12-slim | gzip > wlogtest-images.tar.gz`
 3. On the air-gapped machine: `docker load < wlogtest-images.tar.gz`.
@@ -86,19 +86,20 @@ this).
 
 ## docker/test.sh loop (validation)
 
-1. `docker compose up -d manager` (builds the manager image on first run)
-2. wait for the socket (timeout 120s)
-3. `docker compose build runner runner-test`
+1. `docker compose build runner runner-test` (fail fast, no race with manager start)
+2. `docker compose up -d manager` (builds the manager image on first run)
+3. wait for the socket (timeout 120s)
 4. `docker compose run --rm runner run /data/datasets/basic.json`
 5. `docker compose run --rm runner run /data/datasets/correlation.json`
-6. `docker compose run --rm runner-test python3 -m pytest --cov=wlogtest --cov-report=term-missing -q`
+6. `docker compose run --rm runner run /data/datasets/fail_demo.json` (must exit 1)
+7. `docker compose run --rm runner-test python3 -m pytest -o addopts="" --cov=wlogtest --cov-report=term-missing -q`
    (unit + integration inside docker against the live socket)
-7. teardown `down -v`; exit code reflects test results; print fresh output of
+8. teardown `down -v`; exit code reflects test results; print fresh output of
    every step. Honors `DOCKER="sudo docker"` for sudo-required hosts.
 
 Makefile targets: `test` (local `python3 -m pytest`), `test-docker`
-(`docker/test.sh`), `build`, `up`, `down`, `cov` (pytest --cov with the >= 85%
-gate).
+(`docker/test.sh`, honors `DOCKER`), `build`, `up`, `down`, `cov` (pytest --cov
+with the >= 85% `--cov-fail-under` gate).
 
 ## Gotchas
 

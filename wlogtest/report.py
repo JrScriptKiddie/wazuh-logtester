@@ -83,7 +83,7 @@ def render_console(report, verbose: bool = False) -> str:
                     f"    {check.path}: expected {check.expected!r}, "
                     f"actual {check.actual!r}"
                 )
-                if check.reason and not check.matched:
+                if check.reason and not check.matched and not check.reason.startswith("expected "):
                     line += f" ({check.reason})"
                 lines.append(line)
     lines.append(

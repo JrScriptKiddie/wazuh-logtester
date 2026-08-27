@@ -77,10 +77,10 @@ def _process_event(client, args, token, event) -> tuple:
             options=options,
         )
     except LogtestError as exc:
-        print(
-            json.dumps({"error": exc.code, "message": exc.message}, indent=2),
-            file=sys.stderr,
-        )
+        error = {"error": exc.code, "message": exc.message}
+        if getattr(exc, "codemsg", None) is not None:
+            error["codemsg"] = exc.codemsg
+        print(json.dumps(error, indent=2), file=sys.stderr)
         return token, False
     if args.json:
         print(json.dumps(data, indent=2))
@@ -112,7 +112,7 @@ def _cmd_logtest(parser, args) -> int:
         process(args.event)
     elif not tty:
         for line in sys.stdin:
-            line = line.strip()
+            line = line.rstrip("\r\n")
             if line:
                 process(line)
     else:

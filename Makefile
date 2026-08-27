@@ -1,10 +1,10 @@
 # wazuh-logtest-offline
 #
-# Local targets need python3 + pytest (see .venv). Docker targets need
-# docker + compose v2 (not available on the dev host; validated on a
-# Docker-enabled machine / CI -- see docker/test.sh).
+# Local targets need python3 + pytest. Docker targets need docker + compose v2.
+# On hosts where docker needs sudo, run:
+#     DOCKER="sudo docker" make build up test-docker
 
-COMPOSE := docker compose -f docker/docker-compose.yml
+COMPOSE := $${DOCKER:-docker} compose -f docker/docker-compose.yml
 
 .PHONY: help test cov build up down test-docker examples
 
@@ -14,10 +14,10 @@ help: ## Show available targets
 test: ## Run the unit test suite locally (no docker needed)
 	python3 -m pytest
 
-cov: ## Run tests with per-file coverage report
-	python3 -m pytest --cov=wlogtest --cov-report=term-missing
+cov: ## Run tests with coverage; fails below the 85% gate
+	python3 -m pytest --cov=wlogtest --cov-report=term-missing --cov-fail-under=85
 
-build: ## Build the runner images (runtime runner + builder-stage runner-test)
+build: ## Build all images (manager + runner + runner-test)
 	$(COMPOSE) build
 
 up: ## Start the wazuh manager in the background (runner runs via `compose run`)
@@ -28,7 +28,7 @@ down: ## Stop and remove containers/networks (keeps the wazuh-queue volume)
 	$(COMPOSE) down
 
 test-docker: ## Full end-to-end validation inside docker (manager + datasets + pytest)
-	bash docker/test.sh
+	DOCKER="$${DOCKER:-docker}" bash docker/test.sh
 
 examples: ## Run all three example datasets against a running manager (make up first)
 	$(COMPOSE) run --rm runner run /data/datasets/basic.json

@@ -78,11 +78,14 @@ unless an explicit matcher object is given.
 ## Session modes (DatasetRunner)
 
 - `"per_test"`: fresh token per case, removed afterwards.
-- `"shared"`: one token for all cases in order (no `session` keys).
-- Named sessions (`case.session` set): one token per session key, reused across
-  cases with that key, in order.
+- `"shared"`: one token for all unnamed cases in order.
+- Named sessions (`case.session` set): honored in BOTH modes — one token per
+  session key, reused across cases with that key, in order.
 - `CaseResult` records the `session` key and `token` used for each case.
-- On `LogtestError` mid-case: verdict `"error"`, then continue with the next case.
+- On `LogtestError`/`LogtestTransportError` mid-case: verdict `"error"`, then
+  continue with the next case. A fresh token carried by a
+  `LogtestProcessingError` (server rotated the session) replaces the stored
+  token for that session key.
 - After the run: `remove_session` for every live token, best effort.
 - `RunReport.passed` is true only when every verdict is `"pass"`; `summary` returns
   `{"total", "passed", "failed", "errors"}`; `to_dict()` returns

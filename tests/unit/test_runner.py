@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from wlogtest.client import LogtestError, LogtestTransportError
+from wlogtest.client import LogtestError, LogtestProcessingError, LogtestTransportError
 from wlogtest.dataset import Dataset, TestCase
 
 TestCase.__test__ = False
@@ -48,6 +48,49 @@ def test_per_test_sessions_get_distinct_tokens(fake_client):
     assert [result.session for result in report.results] == ["__case_0", "__case_1"]
     assert client.removed == ["aaa00001", "bbb00002"]
     assert report.passed
+
+
+def test_named_sessions_honored_in_per_test_mode(fake_client):
+    client = fake_client(
+        [
+            response(token="corrA001"),
+            response(token="corrA001"),
+            response(token="lonely02"),
+        ]
+    )
+    dataset = make_dataset(
+        session_mode="per_test",
+        tests=[
+            make_case("c1", "e1", session="corr-a", expect={"alert": True}),
+            make_case("c2", "e2", session="corr-a", expect={"alert": True}),
+            make_case("c3", "e3", expect={"alert": True}),
+        ],
+    )
+    report = DatasetRunner(client, dataset).run()
+    assert [call["token"] for call in client.calls] == [None, "corrA001", None]
+    assert [result.session for result in report.results] == ["corr-a", "corr-a", "__case_2"]
+    assert [result.token for result in report.results] == ["corrA001", "corrA001", "lonely02"]
+    assert sorted(client.removed) == ["corrA001", "lonely02"]
+
+
+def test_processing_error_token_recovered_for_session(fake_client):
+    client = fake_client(
+        [
+            LogtestProcessingError(-1, "bad rule syntax", token="rotated01"),
+            response(token="rotated01"),
+        ]
+    )
+    dataset = make_dataset(
+        session_mode="shared",
+        tests=[
+            make_case("bad", "e1", expect={"alert": True}),
+            make_case("good", "e2", expect={"alert": True}),
+        ],
+    )
+    report = DatasetRunner(client, dataset).run()
+    assert [result.verdict.status for result in report.results] == ["error", "pass"]
+    assert client.calls[1]["token"] == "rotated01"
+    assert client.removed == ["rotated01"]
 
 
 def test_shared_session_mode_reuses_one_token(fake_client):

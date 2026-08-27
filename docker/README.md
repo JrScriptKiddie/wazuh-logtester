@@ -4,23 +4,26 @@ A two-container stack for learning Wazuh decoders/rules completely offline:
 
 ```
 host (students)                    docker network
-┌─────────────────────────────┐    ┌───────────────────────────┐
-│ docker compose run runner   │    │ manager (wazuh-manager)   │
-│  wlogtest run /data/ds.json ├──► │ analysisd (logtest server)│
-│  wlogtest-runner image      │    │ /var/ossec/etc/decoders   │
-└──────────┬──────────────────┘    │ /var/ossec/etc/rules      │
+┌─────────────────────────────┐    ┌───────────────────────────────┐
+│ docker compose run runner   │    │ manager (wlogtest-manager)    │
+│  wlogtest run /data/ds.json ├──► │ analysisd only (logtest srv)  │
+│  wlogtest-runner image      │    │ /var/ossec/etc/decoders       │
+└──────────┬──────────────────┘    │ /var/ossec/etc/rules          │
            └── shared named volume wazuh-queue:
                /var/ossec/queue/sockets/logtest (AF_UNIX)
 ```
 
-* `manager` — `wazuh/wazuh-manager:4.14.7`. The real logtest engine.
-  Custom `docker/config/ossec.conf` enables `<rule_test>`; your decoders/rules
-  from `examples/` are bind-mounted into the user-defined ruleset dirs.
-* `runner` — `wlogtest-runner:latest`, built locally from `docker/Dockerfile`
-  (multi-stage: `builder` = python:3.12-slim + build toolchain + pytest;
+* `manager` — **`wlogtest-manager:4.14.7`, built locally** from
+  `docker/Dockerfile` stage `manager`: amazonlinux:2023 + the pinned
+  wazuh-manager 4.14.7 RPM stripped to the logtest engine only (analysisd,
+  libs, default ruleset, lists) — ~302MB instead of the ~1.5GB official image.
+  `docker/config/ossec.conf` enables `<rule_test>`; your decoders/rules from
+  `examples/` are bind-mounted into the user-defined ruleset dirs.
+* `runner` — `wlogtest-runner:latest`, built locally (multi-stage:
+  `builder` = python:3.12-slim + pinned build toolchain + pytest;
   `runner` = python:3.12-slim + the `wlogtest` wheel only). Entrypoint is
   `wlogtest`, so `compose run runner run /data/datasets/basic.json` works.
-* `wazuh-queue` — named volume shared between the two services; it is how the
+* `wazuh-queue` — named volume shared between the services; it is how the
   runner container reaches the manager's logtest socket.
 * `runner-test` — the Dockerfile **builder stage** under profile `test`
   (pytest + pytest-cov preinstalled). Only used by `docker/test.sh` to run the
@@ -29,7 +32,7 @@ host (students)                    docker network
 ## Quickstart (networked machine)
 
 ```bash
-make build          # build wlogtest-runner + wlogtest-runner-builder
+make build          # build wlogtest-manager + wlogtest-runner + builder
 make up             # start manager, wait until healthy (socket present)
 make examples       # run all three example datasets
 make test-docker    # full end-to-end validation (see docker/test.sh)
@@ -47,14 +50,13 @@ docker compose -f docker/docker-compose.yml run --rm runner run /data/datasets/c
 The stack needs **zero network at runtime**, but images must be prepared on a
 machine that has network:
 
-1. On the networked machine:
+1. On the networked machine (this downloads the wazuh-manager RPM ~513MB and
+   the python base image once, then builds all images locally):
 
    ```bash
-   docker pull wazuh/wazuh-manager:4.14.7
-   docker pull python:3.12-slim
-   docker compose -f docker/docker-compose.yml build   # pip runs happen here
-   docker save wazuh/wazuh-manager:4.14.7 python:3.12-slim \
-          wlogtest-runner:latest wlogtest-runner-builder:latest -o wlogtest-images.tar
+   docker compose -f docker/docker-compose.yml build
+   docker save wlogtest-manager:4.14.7 wlogtest-runner:latest \
+          wlogtest-runner-builder:latest python:3.12-slim -o wlogtest-images.tar
    ```
 
 2. Move the tarball (USB stick, file server, ...) to the air-gapped classroom
@@ -65,8 +67,8 @@ machine that has network:
    ```
 
 3. Now everything above works with no internet connection. Nothing pulls from
-   PyPI at runtime: the builder stage disables build isolation, and the
-   pytest image has dev dependencies baked in.
+   PyPI at runtime: the builder stage has the (pinned) toolchain baked in, and
+   the pytest image has dev dependencies preinstalled.
 
 ## Using your own decoders/rules
 
@@ -83,8 +85,8 @@ user-defined ruleset dirs. To work on your own XML:
    docker compose -f docker/docker-compose.yml restart manager
    ```
 
-3. Write a dataset in `examples/datasets/` (JSON; see README for the matcher
-   format) and run it:
+3. Write a dataset in `examples/datasets/` (JSON; see the repo README for the
+   matcher format) and run it:
 
    ```bash
    docker compose -f docker/docker-compose.yml run --rm runner run /data/datasets/mine.json
@@ -99,8 +101,8 @@ docker compose -f docker/docker-compose.yml run --rm runner \
 
 ## Troubleshooting
 
-* **`socket not ready after 120s` / healthcheck stuck** — the manager needs up
-  to ~60s on first start (wazuh installs itself in the entrypoint). Check:
+* **`socket not ready after 120s` / healthcheck stuck** — the manager boots
+  analysisd in ~15s normally. Check:
 
   ```bash
   docker compose -f docker/docker-compose.yml ps        # health state

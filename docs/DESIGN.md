@@ -149,9 +149,13 @@ class DatasetRunner:
     def __init__(self, client: LogtestClient, dataset: Dataset) -> None
     def run(self) -> RunReport
 # Session logic: session_mode "per_test" -> fresh token per case (removed afterwards).
-# "shared" or named sessions -> one token per session key, reused across cases in order.
+# Named sessions (case.session set) are ALWAYS honored, regardless of session_mode:
+# one token per named key, reused across cases in order. "shared" -> one token for
+# all unnamed cases.
 # On LogtestError or LogtestTransportError during a case: verdict status "error",
-# continue with next case.
+# continue with next case. If the error carries a fresh session token
+# (LogtestProcessingError.token, e.g. server rotated the session), it replaces the
+# stored token for that session key.
 # After run: remove_session for every live token (best effort).
 ```
 
@@ -261,10 +265,11 @@ Module entry: `python3 -m wlogtest.cli`. Console script `wlogtest` in pyproject.
   </max_sessions><session_timeout>15m</session_timeout></rule_test>` ensured;
   ruleset keeps `ruleset/decoders` + `ruleset/rules` (defaults) plus
   `etc/decoders` + `etc/rules` (user dirs); cluster is `disabled`.
-- `docker/test.sh` — `docker compose up -d manager` (builds the manager image
-  on first run) → wait for socket (timeout 120s) → `docker compose build
-  runner runner-test` → `run /data/datasets/basic.json` + correlation (exit 0)
-  → fail_demo (must exit 1) → `runner-test python3 -m pytest --cov=wlogtest`
+- `docker/test.sh` — `docker compose build runner runner-test` first (fail fast,
+  no race with manager start) → `docker compose up -d manager` (builds the
+  manager image on first run) → wait for socket (timeout 120s) → `run
+  /data/datasets/basic.json` + correlation (exit 0) → fail_demo (must exit 1)
+  → `runner-test python3 -m pytest -o addopts="" --cov=wlogtest`
   (unit+integration inside docker) → teardown `down -v`. Exit code reflects
   test results. Honors `DOCKER="sudo docker"` for hosts where docker needs sudo.
 - `Makefile` — `test` (python3 -m pytest), `test-docker` (docker/test.sh),

@@ -153,7 +153,7 @@ def _check_path(path: str, matcher: object, view: dict) -> CheckResult:
     if isinstance(matcher, dict):
         matched = _match_value(matcher, actual)
     elif path == "messages" and isinstance(actual, list):
-        matched = actual == matcher
+        matched = _contains(actual, matcher)
     else:
         matched = _match_value(matcher, actual)
     shown = None if actual is _MISSING else actual
@@ -172,14 +172,11 @@ def evaluate(case_name: str, expect: dict, actual_data: dict) -> Verdict:
     """Compare expect matchers against a logtest response's data dict."""
     data = dict(actual_data or {})
     verdict = Verdict(case_name=case_name, status="pass", actual=data)
-    view = {
-        "alert": data.get("alert"),
-        "token": data.get("token"),
-        "messages": data.get("messages", []),
-    }
     output = data.get("output")
-    if isinstance(output, dict):
-        view.update(output)
+    view = dict(output) if isinstance(output, dict) else {}
+    view["alert"] = data.get("alert")
+    view["token"] = data.get("token")
+    view["messages"] = data.get("messages", [])
     for path, matcher in (expect or {}).items():
         check = _check_path(path, matcher, view)
         verdict.checks.append(check)

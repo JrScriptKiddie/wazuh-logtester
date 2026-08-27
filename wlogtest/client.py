@@ -8,6 +8,7 @@ import struct
 DEFAULT_SOCKET_PATH = "/var/ossec/queue/sockets/logtest"
 DEFAULT_ORIGIN = {"name": "Logtest", "module": "framework"}
 MAX_PAYLOAD = 65536
+MAX_REPLY_PAYLOAD = 4 * 1024 * 1024
 
 _HEADER = struct.Struct("<I")
 
@@ -23,6 +24,11 @@ class LogtestError(Exception):
 
 class LogtestProcessingError(LogtestError):
     """Server processed the event but the analysis failed (codemsg == -1)."""
+
+    def __init__(self, code: int, message: str = "", codemsg: int = -1, token: str = "") -> None:
+        super().__init__(code, message)
+        self.codemsg = codemsg
+        self.token = token
 
 
 class LogtestTransportError(Exception):
@@ -92,9 +98,9 @@ class LogtestClient:
     def _recv_raw(cls, sock: socket.socket) -> bytes:
         header = cls._recv_exact(sock, _HEADER.size)
         size = _HEADER.unpack(header)[0]
-        if size > MAX_PAYLOAD:
+        if size > MAX_REPLY_PAYLOAD:
             raise LogtestProtocolError(
-                f"reply too large: {size} bytes (max {MAX_PAYLOAD})"
+                f"reply too large: {size} bytes (max {MAX_REPLY_PAYLOAD})"
             )
         return cls._recv_exact(sock, size)
 
@@ -156,7 +162,9 @@ class LogtestClient:
         if data.get("codemsg") == -1:
             messages = data.get("messages") or []
             message = messages[0] if messages else "log processing error"
-            raise LogtestProcessingError(-1, message)
+            raise LogtestProcessingError(
+                -1, message, codemsg=-1, token=data.get("token", "") or ""
+            )
         return data
 
     def remove_session(self, token: str) -> dict:

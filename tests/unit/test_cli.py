@@ -159,6 +159,22 @@ def test_logtest_error_exits_one_with_error_json(capsys, stub_client):
     assert parsed == {"error": 3, "message": "nope"}
 
 
+def test_logtest_processing_error_json_includes_codemsg(capsys, stub_client):
+    from wlogtest.client import LogtestProcessingError
+
+    client = stub_client(data=LogtestProcessingError(-1, "bad rule", token="tok9"))
+    assert main(["logtest", "-e", "hello"]) == 1
+    parsed = json.loads(capsys.readouterr().err)
+    assert parsed == {"error": -1, "message": "bad rule", "codemsg": -1}
+
+
+def test_logtest_codemsg_warning_still_exits_zero(capsys, stub_client):
+    data = dict(GOOD_DATA)
+    data["codemsg"] = 1
+    client = stub_client(data=data)
+    assert main(["logtest", "-e", "hello"]) == 0
+
+
 def test_logtest_transport_error_prints_clean_message(capsys, stub_client):
     from wlogtest.client import LogtestTransportError
 

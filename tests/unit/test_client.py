@@ -201,12 +201,12 @@ def test_short_payload_read_raises_protocol_error(unix_socket_server):
 def test_oversized_reply_raises_protocol_error(unix_socket_server):
     def handler(conn):
         read_frame(conn)
-        conn.sendall(struct.pack("<I", 70000))
+        conn.sendall(struct.pack("<I", 5 * 1024 * 1024))
 
     server = unix_socket_server(handler)
     with pytest.raises(LogtestProtocolError) as excinfo:
         LogtestClient(server.path).send("log_processing", {})
-    assert "reply too large: 70000 bytes" in str(excinfo.value)
+    assert "reply too large: 5242880 bytes" in str(excinfo.value)
 
 
 def test_invalid_json_reply_raises_protocol_error():

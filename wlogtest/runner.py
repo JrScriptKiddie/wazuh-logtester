@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
-from wlogtest.client import LogtestError, LogtestTransportError
+from wlogtest.client import LogtestError, LogtestProcessingError, LogtestTransportError
 from wlogtest.verdict import Verdict, evaluate
 
 
@@ -81,11 +81,16 @@ class DatasetRunner:
         for index, case in enumerate(self.dataset.tests):
             if case.skip:
                 continue
-            if self.dataset.session_mode == "per_test":
+            if case.session:
+                # Named sessions are honored regardless of session_mode: they
+                # are the explicit correlation mechanism.
+                session_key = case.session
+                fresh = False
+            elif self.dataset.session_mode == "per_test":
                 session_key = f"__case_{index}"
                 fresh = True
             else:
-                session_key = case.session or "shared"
+                session_key = "shared"
                 fresh = False
             token = "" if fresh else session_tokens.get(session_key, "")
             try:
@@ -96,6 +101,8 @@ class DatasetRunner:
                     token=token or None,
                 )
             except (LogtestError, LogtestTransportError) as exc:
+                if isinstance(exc, LogtestProcessingError) and exc.token:
+                    session_tokens[session_key] = exc.token
                 verdict = Verdict(case_name=case.name, status="error", error=str(exc))
                 results.append(
                     CaseResult(verdict=verdict, session=session_key, token=token or "")

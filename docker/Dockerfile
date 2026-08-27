@@ -17,7 +17,10 @@ FROM python:3.12-slim AS builder
 WORKDIR /app
 
 # Build backend + test toolchain in one layer. --no-cache-dir keeps it slim.
-RUN python3 -m pip install --no-cache-dir build setuptools wheel pytest pytest-cov
+# Versions are pinned so the builder image is reproducible.
+RUN python3 -m pip install --no-cache-dir \
+        build==1.2.2.post1 setuptools==75.8.0 wheel==0.45.1 \
+        pytest==8.3.5 pytest-cov==6.0.0
 
 # Only what the package build needs, so unrelated repo edits do not bust the
 # layer cache. (If pyproject.toml ever references README.md, add a COPY for it.)

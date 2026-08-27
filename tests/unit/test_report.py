@@ -152,10 +152,37 @@ def test_console_contains_status_lines_and_reasons():
     assert "[1] PASS ok case" in out
     assert "[2] FAIL bad case" in out
     assert "[3] ERROR err case" in out
-    assert "expected '100100', got '100999'" in out
+    assert "rule.id: expected '100100', actual '100999'" in out
     assert "error: server exploded" in out
     assert "Dataset: my dataset (3 tests, 1234.5 ms)" in out
     assert "Summary: 3 total, 1 passed, 1 failed, 1 errors" in out
+
+
+def test_console_does_not_duplicate_expected_got_reason():
+    verdict = Verdict(
+        case_name="v",
+        status="fail",
+        checks=[
+            CheckResult(
+                path="rule.id",
+                expected="100100",
+                actual="100999",
+                matched=False,
+                reason="expected '100100', got '100999'",
+            ),
+            CheckResult(
+                path="decoder.name",
+                expected="d",
+                actual=None,
+                matched=False,
+                reason="field missing",
+            ),
+        ],
+    )
+    report = RunReport(dataset_name="d", results=[CaseResult(verdict, "s", "t")])
+    out = render_console(report)
+    assert "(expected '100100', got '100999')" not in out
+    assert "(field missing)" in out
 
 
 def test_console_verbose_includes_matched_checks():

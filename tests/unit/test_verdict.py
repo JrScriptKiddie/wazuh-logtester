@@ -294,15 +294,16 @@ def test_lookup_empty_path_returns_view():
     assert _lookup(view, "") is view
 
 
-def test_messages_plain_list_expectation_exact_equality():
-    data = make_data(messages=["one", "two"])
-    assert evaluate("c", {"messages": ["one", "two"]}, data).status == "pass"
+def test_messages_plain_expectation_uses_contains_semantics():
+    data = make_data(messages=["INFO: rule 100100 fired", "WARNING: foo"])
+    assert evaluate("c", {"messages": "rule 100100 fired"}, data).status == "pass"
+    assert evaluate("c", {"messages": "INFO: rule 100100 fired"}, data).status == "pass"
+    assert evaluate("c", {"messages": "no such text"}, data).status == "fail"
 
 
-def test_messages_plain_list_mismatch_fails():
+def test_messages_plain_matcher_object_still_uses_contains_op():
     data = make_data(messages=["one", "two"])
-    verdict = evaluate("c", {"messages": ["two", "one"]}, data)
-    assert verdict.status == "fail"
+    assert evaluate("c", {"messages": {"contains": "two"}}, data).status == "pass"
 
 
 def test_plain_scalar_expectation_on_missing_field_fails():

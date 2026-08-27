@@ -5,10 +5,11 @@ Origin: forked from [wazuh/wazuh](https://github.com/wazuh/wazuh) at tag **v4.14
 logtest-relevant subset is committed here).
 
 These files are the protocol/server reference for our offline logtest client.
-They are **not** built or executed by this project — the actual logtest engine runs
-inside the `wazuh/wazuh-manager:4.14.7` Docker image (analysisd binds the logtest
-socket). Vendored copies let students and agents inspect the wire protocol without
-network access.
+They are **not** built or executed by this project — the actual logtest engine
+runs inside the locally-built slim `wlogtest-manager:4.14.7` image (analysisd
+4.14.7 extracted from the wazuh-manager RPM, see `docker/Dockerfile`), which
+binds the logtest socket. Vendored copies let students and agents inspect the
+wire protocol without network access.
 
 | Path | Purpose |
 |---|---|

@@ -60,6 +60,7 @@ docker compose -f docker/docker-compose.yml run --rm runner \
 	description: 'myapp: user login failed.'
 	groups: '['hw', 'local']'
 	firedtimes: '1'
+	mail: 'False'
 **Alert to be generated.
 ```
 
@@ -116,6 +117,9 @@ docker compose -f docker/docker-compose.yml run --rm runner logtest -i
 | `{"exists": true|false}` | поле присутствует / отсутствует |
 | `{"any": [m1, m2]}` / `{"all": [m1, m2]}` | ИЛИ / И по вложенным матчерам |
 
+Простое значение (без объекта-матчера) для `messages` работает как `contains`
+по любому элементу списка — например `"messages": "No decoder matched"`.
+
 ### Корреляция
 
 Правила с состоянием (`<frequency>`, `if_matched_sid`, счётчик firedtimes)
@@ -123,7 +127,8 @@ docker compose -f docker/docker-compose.yml run --rm runner logtest -i
 "shared"` — раннер один раз получит токен и прогонит все события через него
 (пример — `examples/datasets/correlation.json`: на третьем одинаковом событии
 срабатывает frequency-правило 100102). Именованные сессии (`"session": "name"`)
-позволяют гонять несколько независимых цепочек корреляции в одном датасете.
+работают в любом режиме и позволяют гонять несколько независимых цепочек
+корреляции в одном датасете.
 
 Выход: консольный отчёт `[PASS]/[FAIL]/[ERROR]` с причинами расхождений,
 `--json` — полный отчёт, `--junit` — XML для CI, `-o report.txt` — в файл.
@@ -144,7 +149,7 @@ docker compose -f docker/docker-compose.yml restart manager
 ## Полностью офлайн (air-gapped класс)
 
 1. На машине с сетью: `docker compose -f docker/docker-compose.yml build manager runner runner-test`
-   (для manager это скачает RPM wazuh-manager 4.14.7 ~490 МБ — только один раз).
+   (для manager это скачает RPM wazuh-manager 4.14.7 ~513 МБ — только один раз).
 2. `docker save wlogtest-manager:4.14.7 wlogtest-runner wlogtest-runner-builder python:3.12-slim | gzip > wlogtest-images.tar.gz`
 3. В классе: `docker load < wlogtest-images.tar.gz` — всё готово.
 
