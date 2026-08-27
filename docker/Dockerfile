@@ -43,6 +43,11 @@ COPY --from=builder /dist /dist
 # Install the wheel and delete it in the same layer (single layer stays small).
 RUN python3 -m pip install --no-cache-dir /dist/*.whl && rm -rf /dist
 
+# Built-in homework datasets (fallback copy; the live /data mount from the repo
+# is authoritative when present). Kept inside the image so an air-gapped
+# `docker load` alone already carries the assignment.
+COPY examples/datasets /opt/datasets
+
 # Wazuh logtest AF_UNIX socket as shared via the wazuh-queue volume.
 ENV WAZUH_LOGTEST_SOCKET=/var/ossec/queue/sockets/logtest
 

@@ -10,6 +10,8 @@ tests
 skills
 docs
 examples
+!examples/datasets
+!examples/datasets/**
 README.md
 Makefile
 AGENTS.md

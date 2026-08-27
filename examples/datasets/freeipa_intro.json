@@ -1,0 +1,68 @@
+{
+  "name": "freeipa_intro",
+  "description": "Воспроизведение жалобы SOC: бухгалтер, забывший пароль (5 неудач ОДНОГО пользователя), и злоумышленник, перебирающий по 1 паролю на РАЗНЫХ пользователей, дают НЕОТЛИЧИМЫЙ поток алертов (100530 на каждом 3-м событии, остальные 100501). Прогоните ДО внесения правок, чтобы увидеть проблему.",
+  "session_mode": "per_test",
+  "default_location": "/var/log/krb5kdc.log",
+  "tests": [
+    {
+      "name": "бухгалтер: неудача 1/5",
+      "session": "accountant",
+      "event": "Aug 27 10:00:01 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.12.8: PREAUTH_FAILED: accountant01@SOC.LAN for kadmin/changepw@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100501"}
+    },
+    {
+      "name": "бухгалтер: неудача 2/5",
+      "session": "accountant",
+      "event": "Aug 27 10:00:02 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.12.8: PREAUTH_FAILED: accountant01@SOC.LAN for kadmin/changepw@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100501"}
+    },
+    {
+      "name": "бухгалтер: неудача 3/5 (срабатывает 100530)",
+      "session": "accountant",
+      "event": "Aug 27 10:00:03 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.12.8: PREAUTH_FAILED: accountant01@SOC.LAN for kadmin/changepw@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100530"}
+    },
+    {
+      "name": "бухгалтер: неудача 4/5",
+      "session": "accountant",
+      "event": "Aug 27 10:00:04 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.12.8: PREAUTH_FAILED: accountant01@SOC.LAN for kadmin/changepw@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100501"}
+    },
+    {
+      "name": "бухгалтер: неудача 5/5",
+      "session": "accountant",
+      "event": "Aug 27 10:00:05 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.12.8: PREAUTH_FAILED: accountant01@SOC.LAN for kadmin/changepw@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100501"}
+    },
+    {
+      "name": "спарсер: неудача 1/5",
+      "session": "sprayer",
+      "event": "Aug 27 10:00:01 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.99.77: PREAUTH_FAILED: student01@SOC.LAN for krbtgt/SOC.LAN@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100501"}
+    },
+    {
+      "name": "спарсер: неудача 2/5",
+      "session": "sprayer",
+      "event": "Aug 27 10:00:02 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.99.77: PREAUTH_FAILED: student02@SOC.LAN for krbtgt/SOC.LAN@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100501"}
+    },
+    {
+      "name": "спарсер: неудача 3/5 (срабатывает 100530)",
+      "session": "sprayer",
+      "event": "Aug 27 10:00:03 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.99.77: PREAUTH_FAILED: student03@SOC.LAN for krbtgt/SOC.LAN@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100530"}
+    },
+    {
+      "name": "спарсер: неудача 4/5",
+      "session": "sprayer",
+      "event": "Aug 27 10:00:04 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.99.77: PREAUTH_FAILED: student04@SOC.LAN for krbtgt/SOC.LAN@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100501"}
+    },
+    {
+      "name": "спарсер: неудача 5/5",
+      "session": "sprayer",
+      "event": "Aug 27 10:00:05 freeipa-server01 krb5kdc[1166]: AS_REQ (8 etypes {aes256-cts-hmac-sha1-96(18), aes128-cts-hmac-sha1-96(17), aes256-cts-hmac-sha384-192(20), aes128-cts-hmac-sha256-128(19), DEPRECATED:des3-cbc-sha1(16), DEPRECATED:arcfour-hmac(23), camellia128-cts-cmac(25), camellia256-cts-cmac(26)}) 10.41.99.77: PREAUTH_FAILED: student05@SOC.LAN for krbtgt/SOC.LAN@SOC.LAN, Preauthentication failed",
+      "expect": {"rule.id": "100501"}
+    }
+  ]
+}

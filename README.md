@@ -153,6 +153,26 @@ docker compose -f docker/docker-compose.yml restart manager
 2. `docker save wlogtest-manager:4.14.7 wlogtest-runner wlogtest-runner-builder python:3.12-slim | gzip > wlogtest-images.tar.gz`
 3. В классе: `docker load < wlogtest-images.tar.gz` — всё готово.
 
+## Домашнее задание FreeIPA (SOC-кейс)
+
+Полноценный разбор SOC-жалобы «Password Spraying срабатывает на бухгалтере»:
+доработать декодер `freeipa-krb5kdc` (поля `krb_user`, `krb_service`) и
+разделить правило 100532 на **Password Spraying** (`different_field krb_user`)
+и **Targeted Brute Force** 100533 (`same_field krb_user`).
+
+- Задание, критерии и инструкции: [`docs/HOMEWORK_FREEIPA.md`](docs/HOMEWORK_FREEIPA.md)
+- Стартовые файлы (правятся студентом): `examples/decoders/8888_freeipa_decoders.xml`,
+  `examples/rules/8888_freeipa_rules.xml`
+- Телеметрия: `examples/telemetry/krb5kdc_samples.log` (формат снят с реального
+  FreeIPA) + сценарии в датасетах `freeipa_intro.json` (воспроизведение жалобы)
+  и `freeipa_graded.json` (ключ проверки, зачёт = 12/12 PASS)
+- Эталонное решение (для преподавателя): `homework/freeipa_solution/`
+
+```bash
+make freeipa   # intro (жалоба) + graded (до правок — красный)
+# ...после правок и restart manager: graded должен стать зелёным
+```
+
 ## Разработка и тесты
 
 ```bash

@@ -81,6 +81,55 @@ if $COMPOSE run --rm -T runner run /data/datasets/fail_demo.json; then
 fi
 echo "fail_demo.json correctly exited non-zero"
 
+# (f2) FreeIPA homework, starter state (student's starting point):
+#   - freeipa_intro.json reproduces the SOC complaint (green, identical alert
+#     streams for both scenarios);
+#   - freeipa_graded.json MUST be red here (the assignment is not solved yet).
+step "run freeipa_intro.json (expect exit 0, complaint reproduced)"
+$COMPOSE run --rm -T runner run /data/datasets/freeipa_intro.json
+step "run freeipa_graded.json on starter rules (expect exit 1: assignment unsolved)"
+if $COMPOSE run --rm -T runner run /data/datasets/freeipa_graded.json; then
+  echo "ERROR: freeipa_graded.json exited 0 on starter rules -- homework is trivially solved" >&2
+  exit 1
+fi
+echo "freeipa_graded.json correctly red on starter rules"
+
+# (f3) FreeIPA homework, reference solution: mount homework/freeipa_solution
+#      instead of the student files and prove the graded dataset turns green.
+#      IMPORTANT: every compose command in this step must include the override
+#      file -- `compose run` with depends_on recreates the manager to the
+#      project config of the files it was given, silently reverting mounts.
+SOL_COMPOSE="$DOCKER compose -f docker/docker-compose.yml -f docker/compose.freeipa-solution.yml"
+step "freeipa reference solution: graded dataset (expect exit 0)"
+$SOL_COMPOSE up -d manager
+sleep 5
+for i in {1..24}; do
+  if $SOL_COMPOSE exec -T manager test -S /var/ossec/queue/sockets/logtest; then
+    break
+  fi
+  if [ "$i" -eq 24 ]; then
+    echo "ERROR: logtest socket not ready after manager restart" >&2
+    exit 1
+  fi
+  sleep 5
+done
+$SOL_COMPOSE run --rm -T runner run /data/datasets/freeipa_graded.json
+
+# (f4) restore the student starter files for the pytest step below.
+step "restore starter rules on manager"
+$COMPOSE up -d manager
+sleep 5
+for i in {1..24}; do
+  if $COMPOSE exec -T manager test -S /var/ossec/queue/sockets/logtest; then
+    break
+  fi
+  if [ "$i" -eq 24 ]; then
+    echo "ERROR: logtest socket not ready after manager restart" >&2
+    exit 1
+  fi
+  sleep 5
+done
+
 # (g) pytest inside docker against the LIVE manager.
 #     runner-test is the builder stage (profile "test"): pytest + pytest-cov
 #     are baked in, the repo is mounted rw at /src with PYTHONPATH=/src (so

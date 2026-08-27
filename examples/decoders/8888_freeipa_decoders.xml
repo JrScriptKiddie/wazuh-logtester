@@ -1,0 +1,45 @@
+<!--
+  ДЗ «FreeIPA: разделение Password Spraying и Targeted Brute Force»
+  ТЕКУЩЕЕ (стартовое) состояние декодеров — как в продуктивном SOC.
+
+  Задача (см. docs/HOMEWORK_FREEIPA.md):
+  1) доработать декодер freeipa-krb5kdc — извлекать krb_user и krb_service;
+  2) разделить правило 100532 на два независимых детекта.
+
+  Декодеры dirsrv ниже не трогать — они для контекста LDAP-логов FreeIPA.
+-->
+<decoder name="freeipa-krb5kdc">
+  <program_name>^krb5kdc$</program_name>
+  <regex type="pcre2">\s([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+): [A-Z_]+</regex>
+  <order>krb_srcip</order>
+</decoder>
+
+<decoder name="freeipa-dirsrv-result">
+  <prematch> RESULT err=</prematch>
+  <regex>conn=([0-9]+) op=([0-9]+) RESULT err=([0-9]+)</regex>
+  <order>id,extra_data,status</order>
+</decoder>
+
+<decoder name="freeipa-dirsrv-search">
+  <prematch> SRCH base=</prematch>
+  <regex>conn=([0-9]+) op=([0-9]+) SRCH base="([^"]*)".*filter="([^"]*)"</regex>
+  <order>id,extra_data,data.ldap_base,data.ldap_filter</order>
+</decoder>
+
+<decoder name="freeipa-dirsrv-bind">
+  <prematch> BIND dn=</prematch>
+  <regex>conn=([0-9]+) op=([0-9]+) BIND dn="([^"]*)".*method=([A-Za-z0-9-]+)</regex>
+  <order>id,extra_data,srcuser,protocol</order>
+</decoder>
+
+<decoder name="freeipa-dirsrv-mod">
+  <prematch> MOD dn=</prematch>
+  <regex>conn=([0-9]+) op=([0-9]+) MOD dn="([^"]+)"</regex>
+  <order>id,extra_data,data.dn</order>
+</decoder>
+
+<decoder name="freeipa-dirsrv-connection">
+  <prematch> connection from </prematch>
+  <regex>conn=([0-9]+) \S+ \S+ connection from (\S+) to (\S+)</regex>
+  <order>id, srcip, dstip</order>
+</decoder>

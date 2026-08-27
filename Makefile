@@ -6,7 +6,7 @@
 
 COMPOSE := $${DOCKER:-docker} compose -f docker/docker-compose.yml
 
-.PHONY: help test cov build up down test-docker examples
+.PHONY: help test cov build up down test-docker examples freeipa
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -34,3 +34,7 @@ examples: ## Run all three example datasets against a running manager (make up f
 	$(COMPOSE) run --rm runner run /data/datasets/basic.json
 	$(COMPOSE) run --rm runner run /data/datasets/correlation.json
 	-$(COMPOSE) run --rm runner run /data/datasets/fail_demo.json
+
+freeipa: ## FreeIPA homework datasets against a running manager (make up first)
+	$(COMPOSE) run --rm runner run /data/datasets/freeipa_intro.json
+	-$(COMPOSE) run --rm runner run /data/datasets/freeipa_graded.json

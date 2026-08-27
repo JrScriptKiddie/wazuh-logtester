@@ -1,0 +1,8 @@
+# Валидация эталонного решения ДЗ FreeIPA.
+# Используется ТОЛЬКО docker/test.sh (и преподавателем): подменяет монтирование
+# студенческих файлов examples/ на эталонное решение из homework/freeipa_solution.
+services:
+  manager:
+    volumes:
+      - ../homework/freeipa_solution/decoders:/var/ossec/etc/decoders:ro
+      - ../homework/freeipa_solution/rules:/var/ossec/etc/rules:ro

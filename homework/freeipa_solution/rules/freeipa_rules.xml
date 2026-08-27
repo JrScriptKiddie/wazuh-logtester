@@ -1,0 +1,166 @@
+<!--
+  ЭТАЛОННОЕ РЕШЕНИЕ ДЗ «FreeIPA: разделение Password Spraying и Targeted
+  Brute Force» — для преподавателя (см. docs/HOMEWORK_FREEIPA.md).
+
+  Группа freeipa (100500-100525) не менялась. В группе freeipa_correlation:
+  - 100530, 100531 без изменений;
+  - 100532 переработан: Password Spraying — РАЗНЫЕ пользователи;
+  - 100533 добавлен: Targeted Brute Force — ОДИН И ТОТ ЖЕ пользователь.
+-->
+<group name="freeipa,kerberos,ldap,">
+
+  <rule id="100500" level="3">
+    <decoded_as>freeipa-krb5kdc</decoded_as>
+    <description>FreeIPA Kerberos activity</description>
+  </rule>
+
+  <rule id="100501" level="8">
+    <if_sid>100500</if_sid>
+    <match>PREAUTH_FAILED</match>
+    <description>FreeIPA Kerberos pre-authentication failed</description>
+    <group>authentication_failed,</group>
+  </rule>
+
+  <rule id="100502" level="7">
+    <if_sid>100500</if_sid>
+    <match>CLIENT_NOT_FOUND</match>
+    <description>FreeIPA Kerberos client not found</description>
+    <group>authentication_failed,invalid_user,</group>
+  </rule>
+
+  <rule id="100503" level="4">
+    <if_sid>100500</if_sid>
+    <match>NEEDED_PREAUTH</match>
+    <description>FreeIPA Kerberos pre-auth required</description>
+  </rule>
+
+  <rule id="100504" level="3">
+    <if_sid>100500</if_sid>
+    <match>ISSUE:</match>
+    <description>FreeIPA Kerberos ticket issued</description>
+  </rule>
+
+  <rule id="100510" level="5">
+    <decoded_as>freeipa-dirsrv-bind</decoded_as>
+    <description>FreeIPA LDAP bind operation</description>
+    <group>ldap_bind,authentication_success,</group>
+  </rule>
+
+  <rule id="100511" level="4">
+    <decoded_as>freeipa-dirsrv-search</decoded_as>
+    <description>FreeIPA LDAP search operation</description>
+    <group>ldap_search,</group>
+  </rule>
+
+  <rule id="100512" level="6">
+    <decoded_as>freeipa-dirsrv-mod</decoded_as>
+    <description>FreeIPA LDAP modify operation</description>
+    <group>ldap_modify,account_changed,</group>
+  </rule>
+
+  <rule id="100513" level="3">
+    <decoded_as>freeipa-dirsrv-result</decoded_as>
+    <description>FreeIPA LDAP result operation</description>
+    <group>ldap_result,</group>
+  </rule>
+
+  <rule id="100514" level="3">
+    <decoded_as>freeipa-dirsrv-connection</decoded_as>
+    <description>FreeIPA LDAP connection established</description>
+    <group>ldap_connection,</group>
+  </rule>
+
+  <rule id="100520" level="8">
+    <if_sid>100510</if_sid>
+    <match>uid=admin,cn=users,cn=accounts</match>
+    <description>FreeIPA LDAP bind as admin</description>
+    <group>privileged_account,ldap_bind_admin,</group>
+  </rule>
+
+  <rule id="100521" level="6">
+    <if_sid>100511</if_sid>
+    <match>base="cn=users,cn=accounts</match>
+    <description>FreeIPA LDAP search in users container</description>
+    <group>ldap_users,</group>
+  </rule>
+
+  <rule id="100522" level="6">
+    <if_sid>100511</if_sid>
+    <match>base="cn=groups,cn=accounts</match>
+    <description>FreeIPA LDAP search in groups container</description>
+    <group>ldap_groups,</group>
+  </rule>
+
+  <rule id="100523" level="9">
+    <if_sid>100512</if_sid>
+    <match>MOD dn="uid=</match>
+    <description>FreeIPA LDAP user object modified</description>
+    <group>ldap_user_modified,account_changed,</group>
+  </rule>
+
+  <rule id="100524" level="9">
+    <if_sid>100512</if_sid>
+    <match>MOD dn="cn=</match>
+    <match>cn=groups,cn=accounts</match>
+    <description>FreeIPA LDAP group modified</description>
+    <group>ldap_group_modified,group_changed,</group>
+  </rule>
+
+  <rule id="100525" level="7">
+    <if_sid>100511</if_sid>
+    <match>filter="(&(uid=</match>
+    <description>FreeIPA LDAP search by uid</description>
+    <group>ldap_user_lookup,</group>
+  </rule>
+
+</group>
+
+<group name="freeipa_correlation,soc_l2,">
+
+  <!-- 3+ KDC pre-auth failures (100501) от одного IP за 5 минут — первый слой трёхслойной атаки -->
+  <rule id="100530" level="12" frequency="3" timeframe="300">
+    <if_matched_sid>100501</if_matched_sid>
+    <same_field>krb_srcip</same_field>
+    <description>FreeIPA three-layer attack: 3+ KDC pre-auth failures from same source IP within 5 minutes</description>
+    <mitre>
+      <id>T1110.003</id>
+      <id>T1087.002</id>
+      <id>T1078</id>
+    </mitre>
+    <group>freeipa_3layer,identity_attack,spraying,</group>
+  </rule>
+
+  <!-- 3+ TGS/TGT ISSUE (100504) от одного IP за 10 сек — Kerberoasting -->
+  <rule id="100531" level="10" frequency="3" timeframe="10">
+    <if_matched_sid>100504</if_matched_sid>
+    <same_field>krb_srcip</same_field>
+    <description>FreeIPA Kerberoasting: 3+ TGS-REQ (ISSUE) from same source within 10 seconds</description>
+    <mitre>
+      <id>T1558.003</id>
+    </mitre>
+    <group>kerberoasting,tgs_spam,</group>
+  </rule>
+
+  <!-- Password Spraying: 5+ PREAUTH_FAILED за 60 сек, РАЗНЫЕ пользователи -->
+  <rule id="100532" level="10" frequency="5" timeframe="60">
+    <if_matched_sid>100501</if_matched_sid>
+    <different_field>krb_user</different_field>
+    <description>FreeIPA KDC password spraying: 5+ pre-auth failures against different users within 60 seconds</description>
+    <mitre>
+      <id>T1110.003</id>
+    </mitre>
+    <group>password_spraying,kdc_spray,</group>
+  </rule>
+
+  <!-- Targeted Brute Force: 5+ PREAUTH_FAILED за 60 сек, ОДИН И ТОТ ЖЕ пользователь -->
+  <rule id="100533" level="10" frequency="5" timeframe="60">
+    <if_matched_sid>100501</if_matched_sid>
+    <same_field>krb_user</same_field>
+    <description>FreeIPA KDC targeted brute force: 5+ pre-auth failures against the same user within 60 seconds</description>
+    <mitre>
+      <id>T1110.001</id>
+    </mitre>
+    <group>brute_force,targeted_brute_force,</group>
+  </rule>
+
+</group>
