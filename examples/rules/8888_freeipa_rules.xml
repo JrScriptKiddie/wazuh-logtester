@@ -6,7 +6,7 @@
   бухгалтере, забывшем пароль (5 неудач одного пользователя), и на
   реальном злоумышленнике (по 1 паролю на 20 пользователей).
 
-  Задача (см. docs/HOMEWORK_FREEIPA.md): разделить 100532 на два
+  Задача (см. homework/freeipa/README.md): разделить 100532 на два
   независимых детекта — Password Spraying (different_field krb_user) и
   Targeted Brute Force (same_field krb_user, новый id 100533).
 

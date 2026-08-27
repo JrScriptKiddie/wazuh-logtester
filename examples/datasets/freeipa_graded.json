@@ -1,6 +1,6 @@
 {
   "name": "freeipa_graded",
-  "description": "ПРОВЕРКА РЕШЕНИЯ ДЗ FreeIPA (см. docs/HOMEWORK_FREEIPA.md). Краснеет на стартовых правилах и зеленеет после: 1) доработки декодера (krb_user, krb_service); 2) разделения 100532 на Password Spraying (different_field krb_user) и Targeted Brute Force 100533 (same_field krb_user). Именованные сессии: decoder-* — одиночные события; spray — 5 событий с разными пользователями (детект 100532); brute — 5 событий с одним пользователем (детект 100533).",
+  "description": "ПРОВЕРКА РЕШЕНИЯ ДЗ FreeIPA (см. homework/freeipa/README.md). Краснеет на стартовых правилах и зеленеет после: 1) доработки декодера (krb_user, krb_service); 2) разделения 100532 на Password Spraying (different_field krb_user) и Targeted Brute Force 100533 (same_field krb_user). Именованные сессии: decoder-* — одиночные события; spray — 5 событий с разными пользователями (детект 100532); brute — 5 событий с одним пользователем (детект 100533).",
   "session_mode": "per_test",
   "default_location": "/var/log/krb5kdc.log",
   "tests": [

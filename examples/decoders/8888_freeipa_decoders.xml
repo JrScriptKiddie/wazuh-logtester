@@ -2,7 +2,7 @@
   ДЗ «FreeIPA: разделение Password Spraying и Targeted Brute Force»
   ТЕКУЩЕЕ (стартовое) состояние декодеров — как в продуктивном SOC.
 
-  Задача (см. docs/HOMEWORK_FREEIPA.md):
+  Задача (см. homework/freeipa/README.md):
   1) доработать декодер freeipa-krb5kdc — извлекать krb_user и krb_service;
   2) разделить правило 100532 на два независимых детекта.
 

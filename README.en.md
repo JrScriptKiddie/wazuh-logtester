@@ -4,8 +4,7 @@
 
 An offline sandbox for debugging Wazuh decoders and rules, plus a dataset
 runner that replays log corpora and produces correlation verdicts. Everything
-runs in Docker with zero network at runtime — give it to your students to
-grade their homework.
+runs in Docker with zero network at runtime.
 
 ## What's inside
 
@@ -24,30 +23,41 @@ grade their homework.
   the logtest unix socket lives).
 - **`examples/`** — reference decoders/rules and datasets: `basic` (all
   green), `correlation` (stateful session, frequency rule), `fail_demo`
-  (educational FAIL), plus the FreeIPA homework described below.
+  (educational FAIL).
 - **`vendor/wazuh/`** — sources forked from Wazuh v4.14.7 (GPL-2.0) as the
   protocol reference.
 - **`skills/`** — AI-agent skills for this project (from skills.sh plus our own).
 
-## Quick start
+## Quick start (step by step)
+
+Prerequisites: **docker + compose v2**
+(https://docs.docker.com/engine/install/).
 
 ```bash
-# once on a networked machine (downloads the wazuh-manager RPM and builds images)
+# 1) Clone the project
+git clone https://github.com/JrScriptKiddie/wazuh-logtester.git
+cd wazuh-logtester
+
+# 2) Build the images (once, needs network: wazuh-manager RPM ~513 MB)
+docker compose -f docker/docker-compose.yml build
+
+# 3) Start the engine (analysisd) — wait for the healthcheck (logtest socket appears)
 docker compose -f docker/docker-compose.yml up -d manager
-docker compose -f docker/docker-compose.yml build runner
 
-# from now on everything works offline:
+# 4) First run: basic.json dataset — 3/3 PASS
 docker compose -f docker/docker-compose.yml run --rm runner run /data/datasets/basic.json
+
+# 5) Correlation: frequency rule on a stateful session — 3/3 PASS
 docker compose -f docker/docker-compose.yml run --rm runner run /data/datasets/correlation.json
-```
 
-Testing a single event (same three-phase output as the original
-`wazuh-logtest`: pre-decoding → decoding → rule matching):
-
-```bash
+# 6) One event by hand (3-phase output, like the original wazuh-logtest)
 docker compose -f docker/docker-compose.yml run --rm runner \
   logtest -e "Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=failed"
 ```
+
+All subsequent runs work offline. The `logtest` output shows the same three
+phases as the original `wazuh-logtest` (pre-decoding → decoding → rule
+matching):
 
 ```
 **Phase 1: Completed pre-decoding.
@@ -159,28 +169,6 @@ status.
    (the manager stage downloads the wazuh-manager 4.14.7 RPM ~513 MB — once).
 2. `docker save wlogtest-manager:4.14.7 wlogtest-runner wlogtest-runner-builder python:3.12-slim | gzip > wlogtest-images.tar.gz`
 3. In the classroom: `docker load < wlogtest-images.tar.gz` — done.
-
-## FreeIPA homework (SOC case)
-
-A full walkthrough of a real SOC complaint — "Password Spraying fires on the
-accountant who forgot their password": extend the `freeipa-krb5kdc` decoder
-(fields `krb_user`, `krb_service`) and split rule 100532 into
-**Password Spraying** (`different_field krb_user`) and **Targeted Brute
-Force** 100533 (`same_field krb_user`).
-
-- Assignment, criteria and instructions: [`docs/HOMEWORK_FREEIPA.md`](docs/HOMEWORK_FREEIPA.md) (Russian)
-- Starter files (edited by the student): `examples/decoders/8888_freeipa_decoders.xml`,
-  `examples/rules/8888_freeipa_rules.xml`
-- Telemetry: `examples/telemetry/krb5kdc_samples.log` (format captured from a
-  real FreeIPA) plus scenarios in `freeipa_intro.json` (reproduces the
-  complaint) and `freeipa_graded.json` (the grading key, pass = 12/12)
-- Reference solution (for the teacher): `homework/freeipa_solution/` —
-  **not stored in git** (gitignored), lives only on the teacher's machine
-
-```bash
-make freeipa   # intro (the complaint) + graded (red before the fix)
-# ...after the fix + manager restart: graded must turn green
-```
 
 ## Development and tests
 

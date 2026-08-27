@@ -3,8 +3,7 @@
 **Русский** · [English](README.en.md)
 
 Офлайн-стенд для отладки декодеров и правил Wazuh + прогон датасетов логов с
-вердиктами по корреляции. Всё в Docker, без внешней сети во время работы —
-давайте его ученикам для проверки домашних заданий.
+вердиктами по корреляции. Всё в Docker, без внешней сети во время работы.
 
 ## Что внутри
 
@@ -20,30 +19,40 @@
 - **`runner`** — контейнер `python:3.12-slim` с пакетом `wlogtest`, общается с
   manager через общий volume `/var/ossec/queue` (там живёт unix-сокет logtest).
 - **`examples/`** — эталонные декодер/правила и датасеты: `basic` (всё зелёное),
-  `correlation` (stateful-сессия, frequency-правило), `fail_demo` (учебный FAIL),
-  плюс FreeIPA-ДЗ (см. ниже).
+  `correlation` (stateful-сессия, frequency-правило), `fail_demo` (учебный FAIL).
 - **`vendor/wazuh/`** — форк исходников Wazuh v4.14.7 (GPL-2.0) как эталон протокола.
 - **`skills/`** — скилы для ИИ-агентов проекта (из skills.sh + собственные).
 
-## Быстрый старт
+## Быстрый старт (по нарастающей)
+
+Требования: **docker + compose v2**
+(https://docs.docker.com/engine/install/).
 
 ```bash
-# один раз на машине с интернетом (скачивается RPM wazuh-manager и собираются образы)
+# 1) Клонировать проект
+git clone https://github.com/JrScriptKiddie/wazuh-logtester.git
+cd wazuh-logtester
+
+# 2) Собрать образы (один раз, нужен интернет: RPM wazuh-manager ~513 МБ)
+docker compose -f docker/docker-compose.yml build
+
+# 3) Поднять движок (analysisd) — дождитесь healthcheck (появится сокет logtest)
 docker compose -f docker/docker-compose.yml up -d manager
-docker compose -f docker/docker-compose.yml build runner
 
-# теперь можно работать без сети:
+# 4) Первый прогон: датасет basic.json — 3/3 PASS
 docker compose -f docker/docker-compose.yml run --rm runner run /data/datasets/basic.json
+
+# 5) Корреляция: frequency-правило на stateful-сессии — 3/3 PASS
 docker compose -f docker/docker-compose.yml run --rm runner run /data/datasets/correlation.json
-```
 
-Проверка одного события (как оригинальный `wazuh-logtest` — тот же вывод из
-трёх фаз: pre-decoding → decoding → rule matching):
-
-```bash
+# 6) Одно событие вручную (3-фазный вывод, как у оригинального wazuh-logtest)
 docker compose -f docker/docker-compose.yml run --rm runner \
   logtest -e "Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=failed"
 ```
+
+Все последующие прогоны работают без сети. Вывод `logtest` — те же три
+фазы, что и у оригинального `wazuh-logtest` (pre-decoding → decoding →
+rule matching):
 
 ```
 **Phase 1: Completed pre-decoding.
@@ -155,27 +164,6 @@ docker compose -f docker/docker-compose.yml restart manager
    (для manager это скачает RPM wazuh-manager 4.14.7 ~513 МБ — только один раз).
 2. `docker save wlogtest-manager:4.14.7 wlogtest-runner wlogtest-runner-builder python:3.12-slim | gzip > wlogtest-images.tar.gz`
 3. В классе: `docker load < wlogtest-images.tar.gz` — всё готово.
-
-## Домашнее задание FreeIPA (SOC-кейс)
-
-Полноценный разбор SOC-жалобы «Password Spraying срабатывает на бухгалтере»:
-доработать декодер `freeipa-krb5kdc` (поля `krb_user`, `krb_service`) и
-разделить правило 100532 на **Password Spraying** (`different_field krb_user`)
-и **Targeted Brute Force** 100533 (`same_field krb_user`).
-
-- Задание, критерии и инструкции: [`docs/HOMEWORK_FREEIPA.md`](docs/HOMEWORK_FREEIPA.md)
-- Стартовые файлы (правятся студентом): `examples/decoders/8888_freeipa_decoders.xml`,
-  `examples/rules/8888_freeipa_rules.xml`
-- Телеметрия: `examples/telemetry/krb5kdc_samples.log` (формат снят с реального
-  FreeIPA) + сценарии в датасетах `freeipa_intro.json` (воспроизведение жалобы)
-  и `freeipa_graded.json` (ключ проверки, зачёт = 12/12 PASS)
-- Эталонное решение (для преподавателя): `homework/freeipa_solution/` —
-  **не хранится в git** (в `.gitignore`), живёт только локально у преподавателя
-
-```bash
-make freeipa   # intro (жалоба) + graded (до правок — красный)
-# ...после правок и restart manager: graded должен стать зелёным
-```
 
 ## Разработка и тесты
 
