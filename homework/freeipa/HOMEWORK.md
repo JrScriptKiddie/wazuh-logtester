@@ -36,6 +36,23 @@
 Эти файлы по умолчанию смонтированы в manager-контейнер
 (`/var/ossec/etc/decoders` и `/var/ossec/etc/rules`).
 
+## Исходные данные
+
+- **Датасеты** (прогоняются утилитой — на них проверяется работа):
+  - `examples/datasets/freeipa_intro.json` — исходное поведение (жалоба SOC),
+    прогоняется до правок;
+  - `examples/datasets/freeipa_graded.json` — целевое поведение после
+    правок, зачёт = 12/12 PASS.
+- **Набор правил** — `examples/rules/8888_freeipa_rules.xml`:
+  - группа `freeipa` (100500–100525) — базовые детекты KDC/LDAP;
+  - группа `freeipa_correlation` (100530–100532) — корреляция; 100532
+    подлежит разделению.
+- **Набор декодеров** — `examples/decoders/8888_freeipa_decoders.xml`:
+  - `freeipa-krb5kdc` — дорабатывается (+`krb_user`, +`krb_service`);
+  - `freeipa-dirsrv-*` (5 шт.) — LDAP-контекст, не меняются.
+- **Телеметрия** — `examples/telemetry/krb5kdc_samples.log` (статусы
+  `PREAUTH_FAILED`, `NEEDED_PREAUTH`, `ISSUE`, `CLIENT_NOT_FOUND`).
+
 ## Запуск утилиты и передача своих правил
 
 1. Поднять стек (один раз):
@@ -79,6 +96,14 @@
 
    Встроенные в образ копии датасетов лежат в `/opt/datasets/` (для
    air-gapped машин без репозитория): `runner run /opt/datasets/freeipa_graded.json`.
+
+5. Остановка стенда:
+
+   ```bash
+   docker compose -f docker/docker-compose.yml down          # остановить контейнеры
+   docker compose -f docker/docker-compose.yml down -v       # ...и удалить том с сокетом/сессиями
+   docker compose -f docker/docker-compose.yml stop manager  # только приостановить движок
+   ```
 
 ## Телеметрия
 

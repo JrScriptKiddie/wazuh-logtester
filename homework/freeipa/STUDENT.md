@@ -39,6 +39,21 @@ Docker-стека
 | Датасет «жалоба SOC» (до правок) | `examples/datasets/freeipa_intro.json` |
 | Датасет-ключ проверки (зачёт) | `examples/datasets/freeipa_graded.json` |
 
+### Исходные данные
+
+- **Датасеты** (прогоняются утилитой — на них проверяется работа):
+  - `freeipa_intro.json` — исходное, неисправленное поведение (жалоба SOC);
+  - `freeipa_graded.json` — целевое поведение после правок, зачёт = 12/12 PASS.
+- **Набор правил** — `examples/rules/8888_freeipa_rules.xml`:
+  - группа `freeipa` (100500–100525) — базовые детекты KDC/LDAP (не трогать);
+  - группа `freeipa_correlation` (100530–100532) — корреляция;
+    правило 100532 подлежит разделению.
+- **Набор декодеров** — `examples/decoders/8888_freeipa_decoders.xml`:
+  - `freeipa-krb5kdc` — дорабатывается (добавить `krb_user`, `krb_service`);
+  - `freeipa-dirsrv-*` (5 шт.) — LDAP-контекст, не меняются.
+- **Телеметрия** — `examples/telemetry/krb5kdc_samples.log`:
+  статусы `PREAUTH_FAILED`, `NEEDED_PREAUTH`, `ISSUE`, `CLIENT_NOT_FOUND`.
+
 Формат строки KDC-лога:
 
 ```
@@ -88,5 +103,17 @@ Docker-стека
 
 ## Сдача
 
-Принимается дифф декодера и правил + вывод прогона `freeipa_graded.json`
-(12/12 PASS) на стеке, развёрнутом самостоятельно.
+Сдаётся:
+
+1. **XML декодера** — доработанный `8888_freeipa_decoders.xml`;
+2. **XML правил** — доработанный `8888_freeipa_rules.xml`;
+3. вывод прогона `freeipa_graded.json` (**12/12 PASS**) на самостоятельно
+   развёрнутом стенде.
+
+## Остановка стенда
+
+```bash
+docker compose -f docker/docker-compose.yml down          # остановить контейнеры
+docker compose -f docker/docker-compose.yml down -v       # ...и удалить том с сокетом/сессиями
+docker compose -f docker/docker-compose.yml stop manager  # только приостановить движок
+```
