@@ -166,7 +166,8 @@ docker compose -f docker/docker-compose.yml restart manager
 - Телеметрия: `examples/telemetry/krb5kdc_samples.log` (формат снят с реального
   FreeIPA) + сценарии в датасетах `freeipa_intro.json` (воспроизведение жалобы)
   и `freeipa_graded.json` (ключ проверки, зачёт = 12/12 PASS)
-- Эталонное решение (для преподавателя): `homework/freeipa_solution/`
+- Эталонное решение (для преподавателя): `homework/freeipa_solution/` —
+  **не хранится в git** (в `.gitignore`), живёт только локально у преподавателя
 
 ```bash
 make freeipa   # intro (жалоба) + graded (до правок — красный)

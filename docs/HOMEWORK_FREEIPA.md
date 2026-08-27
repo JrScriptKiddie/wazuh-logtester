@@ -136,8 +136,10 @@
 
 ---
 
-*Для преподавателя:* эталонное решение — `homework/freeipa_solution/`
-(декодер + правила). Проверить его в docker:
+*Для преподавателя:* эталонное решение **не хранится в git** (каталог
+`homework/freeipa_solution/` в `.gitignore`) — оно живёт только локально у
+вас. Формат: `homework/freeipa_solution/{decoders,rules}/freeipa_*.xml`
+(см. `homework/freeipa_solution/README.md`). Проверить его в docker:
 
 ```bash
 docker compose -f docker/docker-compose.yml -f docker/compose.freeipa-solution.yml up -d manager
@@ -145,4 +147,5 @@ docker compose -f docker/docker-compose.yml run --rm runner run /data/datasets/f
 ```
 
 `docker/test.sh` автоматически проверяет, что на стартовых файлах датасет
-`freeipa_graded` красный, а на эталонном решении — зелёный.
+`freeipa_graded` красный, а на эталонном решении — зелёный (шаг пропускается,
+если каталог с решением не найден).

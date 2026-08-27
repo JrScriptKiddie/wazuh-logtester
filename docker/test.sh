@@ -99,21 +99,28 @@ echo "freeipa_graded.json correctly red on starter rules"
 #      IMPORTANT: every compose command in this step must include the override
 #      file -- `compose run` with depends_on recreates the manager to the
 #      project config of the files it was given, silently reverting mounts.
-SOL_COMPOSE="$DOCKER compose -f docker/docker-compose.yml -f docker/compose.freeipa-solution.yml"
+#      The solution itself is teacher-local (gitignored, see .gitignore):
+#      this step is skipped when it is not present.
 step "freeipa reference solution: graded dataset (expect exit 0)"
-$SOL_COMPOSE up -d manager
-sleep 5
-for i in {1..24}; do
-  if $SOL_COMPOSE exec -T manager test -S /var/ossec/queue/sockets/logtest; then
-    break
-  fi
-  if [ "$i" -eq 24 ]; then
-    echo "ERROR: logtest socket not ready after manager restart" >&2
-    exit 1
-  fi
+if [ ! -f homework/freeipa_solution/rules/freeipa_rules.xml ] || \
+   [ ! -f homework/freeipa_solution/decoders/freeipa_decoders.xml ]; then
+  echo "skipped: homework/freeipa_solution/ is not present (teacher-local, gitignored)"
+else
+  SOL_COMPOSE="$DOCKER compose -f docker/docker-compose.yml -f docker/compose.freeipa-solution.yml"
+  $SOL_COMPOSE up -d manager
   sleep 5
-done
-$SOL_COMPOSE run --rm -T runner run /data/datasets/freeipa_graded.json
+  for i in {1..24}; do
+    if $SOL_COMPOSE exec -T manager test -S /var/ossec/queue/sockets/logtest; then
+      break
+    fi
+    if [ "$i" -eq 24 ]; then
+      echo "ERROR: logtest socket not ready after manager restart" >&2
+      exit 1
+    fi
+    sleep 5
+  done
+  $SOL_COMPOSE run --rm -T runner run /data/datasets/freeipa_graded.json
+fi
 
 # (f4) restore the student starter files for the pytest step below.
 step "restore starter rules on manager"
