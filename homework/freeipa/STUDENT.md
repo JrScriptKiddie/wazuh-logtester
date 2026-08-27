@@ -53,6 +53,10 @@ Docker-стека
   - `freeipa-dirsrv-*` (5 шт.) — LDAP-контекст, не меняются.
 - **Телеметрия** — `examples/telemetry/krb5kdc_samples.log`:
   статусы `PREAUTH_FAILED`, `NEEDED_PREAUTH`, `ISSUE`, `CLIENT_NOT_FOUND`.
+- **Важно про источник:** в сценариях датасетов исходные IP **ротируются**
+  (NAT-пул) — по ТЗ детекты должны опираться на `krb_user`. Правило с
+  условием `<same_field>krb_srcip</same_field>` на проверочных данных не
+  сработает — это ожидаемо, а не сбой стенда.
 
 Формат строки KDC-лога:
 
@@ -95,10 +99,20 @@ https://github.com/JrScriptKiddie/wazuh-logtester
 | 2 | декодер извлекает `krb_user` и `krb_service` из `TGS_REQ ... ISSUE` |
 | 3 | 5 неудач с **разными** пользователями → **100532 Password Spraying** |
 | 4 | 5 неудач с **одним** пользователем → **100533 Targeted Brute Force** |
-| 5 | описания детектов содержат «different users» / «same user» |
+| 5 | описания детектов однозначно различают сценарии (содержат «different users» / «same user») |
+
+`freeipa_intro.json` после правок может остаться зелёным — это нормально;
+приёмка только по `freeipa_graded.json` (12/12).
+
+Как читать вывод утилиты: строки `[N] PASS/FAIL имя_кейса`; при расхождении —
+путь поля и причина (`field missing` / `expected ... got ...`); итог —
+`Summary: 12 total, 12 passed, 0 failed, 0 errors`.
 
 ## Подсказки (по Wazuh, не по Docker)
 
+- Официальная документация Wazuh (синтаксис декодеров и правил,
+  `frequency`/`timeframe`, `same_field`/`different_field`):
+  https://documentation.wazuh.com/current/user-manual/ruleset/ruleset-xml-syntax/
 - Regex декодера — pcre2; якоря строки: `IP: STATUS:` и
   `user@REALM for spn@REALM`; пользователь/SPN не содержат пробелов и `@`
   внутри себя; `<order>` — группы захвата через запятую.
