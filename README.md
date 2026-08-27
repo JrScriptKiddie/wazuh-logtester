@@ -1,4 +1,6 @@
-# wazuh-logtest-offline
+# Wazuh Logtester
+
+**Русский** · [English](README.en.md)
 
 Офлайн-стенд для отладки декодеров и правил Wazuh + прогон датасетов логов с
 вердиктами по корреляции. Всё в Docker, без внешней сети во время работы —
@@ -17,8 +19,9 @@
   в `/var/ossec/etc/decoders` и `/var/ossec/etc/rules`.
 - **`runner`** — контейнер `python:3.12-slim` с пакетом `wlogtest`, общается с
   manager через общий volume `/var/ossec/queue` (там живёт unix-сокет logtest).
-- **`examples/`** — эталонные декодер/правила и три датасета: `basic` (всё зелёное),
-  `correlation` (stateful-сессия, frequency-правило), `fail_demo` (учебный FAIL).
+- **`examples/`** — эталонные декодер/правила и датасеты: `basic` (всё зелёное),
+  `correlation` (stateful-сессия, frequency-правило), `fail_demo` (учебный FAIL),
+  плюс FreeIPA-ДЗ (см. ниже).
 - **`vendor/wazuh/`** — форк исходников Wazuh v4.14.7 (GPL-2.0) как эталон протокола.
 - **`skills/`** — скилы для ИИ-агентов проекта (из skills.sh + собственные).
 
