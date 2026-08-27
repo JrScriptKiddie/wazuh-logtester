@@ -22,4 +22,8 @@ mkdir -p /var/ossec/logs/alerts /var/ossec/stats /var/ossec/var/run
 chown -R wazuh:wazuh /var/ossec/queue /var/ossec/logs \
                      /var/ossec/stats /var/ossec/var/run
 
+# Stale sockets from a previous container life survive in the named volume
+# and would break the bind (or pass the healthcheck with no listener). Drop them.
+rm -f /var/ossec/queue/sockets/*
+
 exec /var/ossec/bin/wazuh-analysisd "$@"

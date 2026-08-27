@@ -5,9 +5,9 @@ import json
 import sys
 
 from wlogtest import __version__
-from wlogtest.client import LogtestClient, LogtestError
+from wlogtest.client import LogtestClient, LogtestError, LogtestTransportError
 from wlogtest.dataset import DatasetError, load_dataset
-from wlogtest.report import render_console, render_json, render_junit_xml
+from wlogtest.report import render_console, render_json, render_junit_xml, render_phases
 from wlogtest.runner import DatasetRunner
 
 QUIT_COMMANDS = (":quit", ":q")
@@ -41,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--end-session", action="store_true", help="remove the session afterwards"
     )
     logtest.add_argument("--socket", default=None, help="logtest socket path")
+    logtest.add_argument(
+        "--json",
+        action="store_true",
+        help="print the raw JSON response instead of the 3-phase output",
+    )
 
     run = subparsers.add_parser(
         "run", help="run a dataset against Wazuh logtest"
@@ -60,7 +65,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _process_event(client, args, token, event) -> tuple:
-    """Send one event; return (token, ok). Prints the response data as JSON."""
+    """Send one event; return (token, ok). Prints the 3-phase wazuh-logtest
+    output (default) or the raw JSON response with --json."""
     options = {"rules_debug": True} if args.debug else None
     try:
         data = client.run_log(
@@ -76,7 +82,10 @@ def _process_event(client, args, token, event) -> tuple:
             file=sys.stderr,
         )
         return token, False
-    print(json.dumps(data, indent=2))
+    if args.json:
+        print(json.dumps(data, indent=2))
+    else:
+        print(render_phases(data))
     new_token = data.get("token") if isinstance(data, dict) else None
     return new_token or token, True
 
@@ -91,7 +100,11 @@ def _cmd_logtest(parser, args) -> int:
 
     def process(event):
         nonlocal token, all_ok
-        token, ok = _process_event(client, args, token, event)
+        try:
+            token, ok = _process_event(client, args, token, event)
+        except LogtestTransportError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            ok = False
         if not ok:
             all_ok = False
 

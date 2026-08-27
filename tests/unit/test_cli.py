@@ -86,9 +86,20 @@ def test_version_subcommand_exits_zero_with_version(capsys):
     assert capsys.readouterr().out.strip() == "1.0.0"
 
 
-def test_logtest_single_event_prints_response_json(capsys, stub_client):
+def test_logtest_single_event_prints_phase_output(capsys, stub_client):
     client = stub_client()
     assert main(["logtest", "-e", "hello world"]) == 0
+    out = capsys.readouterr().out
+    assert "**Phase 1: Completed pre-decoding." in out
+    assert "**Phase 2: Completed decoding." in out
+    assert "**Phase 3: Completed filtering (rules)." in out
+    assert "id: '100100'" in out
+    assert "**Alert to be generated." in out
+
+
+def test_logtest_json_flag_prints_raw_json(capsys, stub_client):
+    client = stub_client()
+    assert main(["logtest", "-e", "hello world", "--json"]) == 0
     out = capsys.readouterr().out
     data = json.loads(out)
     assert data["token"] == "abc12345"
@@ -148,13 +159,26 @@ def test_logtest_error_exits_one_with_error_json(capsys, stub_client):
     assert parsed == {"error": 3, "message": "nope"}
 
 
+def test_logtest_transport_error_prints_clean_message(capsys, stub_client):
+    from wlogtest.client import LogtestTransportError
+
+    client = stub_client()
+    client.run_log = lambda *a, **kw: (_ for _ in ()).throw(
+        LogtestTransportError("cannot connect to /var/ossec/queue/sockets/logtest")
+    )
+    assert main(["logtest", "-e", "hello"]) == 1
+    err = capsys.readouterr().err
+    assert "error: cannot connect" in err
+    assert "Traceback" not in err
+
+
 def test_logtest_piped_stdin_processes_each_line(capsys, stub_client, monkeypatch):
     client = stub_client()
     monkeypatch.setattr(cli_module.sys, "stdin", FakeStdin(["line one\n", "line two\n"]))
     assert main(["logtest"]) == 0
     assert [call["event"] for call in client.calls] == ["line one", "line two"]
     out = capsys.readouterr().out
-    assert out.count('"token": "abc12345"') == 2
+    assert out.count("**Phase 1: Completed pre-decoding.") == 2
 
 
 class MockInput:

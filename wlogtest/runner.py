@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass, field
 
-from wlogtest.client import LogtestError
+from wlogtest.client import LogtestError, LogtestTransportError
 from wlogtest.verdict import Verdict, evaluate
 
 
@@ -95,7 +95,7 @@ class DatasetRunner:
                     log_format=case.log_format or self.dataset.default_log_format,
                     token=token or None,
                 )
-            except LogtestError as exc:
+            except (LogtestError, LogtestTransportError) as exc:
                 verdict = Verdict(case_name=case.name, status="error", error=str(exc))
                 results.append(
                     CaseResult(verdict=verdict, session=session_key, token=token or "")

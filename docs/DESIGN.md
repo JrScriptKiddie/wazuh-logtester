@@ -150,7 +150,8 @@ class DatasetRunner:
     def run(self) -> RunReport
 # Session logic: session_mode "per_test" -> fresh token per case (removed afterwards).
 # "shared" or named sessions -> one token per session key, reused across cases in order.
-# On LogtestError during a case: verdict status "error", continue with next case.
+# On LogtestError or LogtestTransportError during a case: verdict status "error",
+# continue with next case.
 # After run: remove_session for every live token (best effort).
 ```
 
@@ -165,9 +166,12 @@ def render_junit_xml(report: RunReport) -> str     # testsuite XML; failure text
 argparse, stdlib only. `main(argv=None) -> int` (exit code).
 ```
 wlogtest logtest [-e EVENT | -i] [-l LOCATION] [-f FORMAT] [--token TOKEN]
-                 [--debug] [--end-session] [--socket PATH]
+                 [--debug] [--end-session] [--socket PATH] [--json]
     # -e: single event; -i: interactive REPL (persistent session); stdin lines if piped.
-    # prints response data as indented JSON; exit 0 if error==0 and codemsg != -1, else 1
+    # Default output is the official wazuh-logtest 3-phase format (see
+    # wlogtest/report.py render_phases: Phase 1 pre-decoding / Phase 2 decoding /
+    # Phase 3 rule filtering + "**Alert to be generated."). --json prints the raw
+    # response JSON instead. Exit 0 if error==0 and codemsg != -1, else 1.
 wlogtest run DATASET [--socket PATH] [--json|--junit] [--verbose] [-o FILE]
     # prints console report to stdout (or file via -o; with --json/--junit prints that format)
     # exit 0 iff report.passed else 1

@@ -10,6 +10,61 @@ def _escape_attr(value) -> str:
     return escape(str(value), _ATTR_ENTITIES)
 
 
+def _phase_info(phase_data: dict, show_first: list | None = None, prefix: str = "") -> list:
+    """Replica of wazuh-logtest's show_phase_info: ordered fields first, then the
+    rest sorted; nested dicts recurse with a dotted prefix."""
+    lines = []
+    show_first = show_first or []
+    remaining = dict(phase_data)
+    for field in show_first:
+        if field in remaining:
+            lines.append("\t%s: '%s'" % (field, remaining.pop(field)))
+    for field in sorted(remaining):
+        value = remaining[field]
+        if isinstance(value, dict):
+            lines.extend(_phase_info(value, [], prefix + field + "."))
+        else:
+            lines.append("\t%s: '%s'" % (prefix + field, value))
+    return lines
+
+
+def render_phases(data: dict) -> str:
+    """Render a logtest response the way the official wazuh-logtest CLI does:
+    three phases (pre-decoding, decoding, rule filtering) plus the alert note."""
+    response = dict(data or {})
+    output = dict(response.get("output") or {})
+    lines = []
+    lines.append("**Phase 1: Completed pre-decoding.")
+    if "full_log" in output:
+        lines.append("\tfull event: '%s'" % output["full_log"])
+    predecoder = output.get("predecoder")
+    if isinstance(predecoder, dict):
+        lines.extend(_phase_info(predecoder, ["timestamp", "hostname", "program_name"]))
+    lines.append("")
+    lines.append("**Phase 2: Completed decoding.")
+    decoder = output.get("decoder")
+    if decoder:
+        lines.extend(_phase_info(decoder, ["name", "parent"]))
+        if isinstance(output.get("data"), dict):
+            lines.extend(_phase_info(output["data"]))
+    else:
+        lines.append("\tNo decoder matched.")
+    if response.get("rules_debug"):
+        lines.append("")
+        lines.append("**Rule debugging:")
+        for debug_msg in response["rules_debug"]:
+            prefix = "\t\t" if str(debug_msg).startswith("*") else "\t"
+            lines.append(prefix + str(debug_msg))
+    rule = output.get("rule")
+    if rule:
+        lines.append("")
+        lines.append("**Phase 3: Completed filtering (rules).")
+        lines.extend(_phase_info(rule, ["id", "level", "description", "groups", "firedtimes"]))
+    if response.get("alert"):
+        lines.append("**Alert to be generated.")
+    return "\n".join(lines)
+
+
 def render_console(report, verbose: bool = False) -> str:
     lines = []
     summary = report.summary

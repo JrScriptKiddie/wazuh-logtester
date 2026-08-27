@@ -3,9 +3,112 @@ from __future__ import annotations
 import json
 import xml.etree.ElementTree as ET
 
-from wlogtest.report import render_console, render_json, render_junit_xml
+from wlogtest.report import render_console, render_json, render_junit_xml, render_phases
 from wlogtest.runner import CaseResult, RunReport
 from wlogtest.verdict import CheckResult, Verdict
+
+REALISTIC_DATA = {
+    "token": "8cd2d6d1",
+    "messages": ["INFO: (7202): Session initialized with token '8cd2d6d1'"],
+    "output": {
+        "timestamp": "2026-08-27T10:00:00.000+0000",
+        "rule": {
+            "level": 6,
+            "description": "myapp: user login failed.",
+            "id": "100101",
+            "firedtimes": 1,
+            "mail": False,
+            "groups": ["hw", "local"],
+        },
+        "full_log": "Aug 27 10:00:01 myserver myapp[1234]: login user=bob status=failed",
+        "predecoder": {
+            "program_name": "myapp",
+            "timestamp": "Aug 27 10:00:01",
+            "hostname": "myserver",
+        },
+        "decoder": {"name": "myapp_decoder"},
+        "data": {"dstuser": "bob", "status": "failed"},
+        "location": "stdin",
+    },
+    "alert": True,
+    "codemsg": 0,
+}
+
+
+def test_phases_three_phase_structure_in_official_order():
+    out = render_phases(REALISTIC_DATA)
+    assert "**Phase 1: Completed pre-decoding." in out
+    assert "**Phase 2: Completed decoding." in out
+    assert "**Phase 3: Completed filtering (rules)." in out
+    assert "**Alert to be generated." in out
+    assert out.index("Phase 1") < out.index("Phase 2") < out.index("Phase 3")
+
+
+def test_phases_phase1_full_event_and_ordered_predecoder_fields():
+    out = render_phases(REALISTIC_DATA)
+    assert "\tfull event: 'Aug 27 10:00:01 myserver myapp[1234]: login user=bob status=failed'" in out
+    assert out.index("\ttimestamp: 'Aug 27 10:00:01'") < out.index("\thostname: 'myserver'")
+    assert out.index("\thostname: 'myserver'") < out.index("\tprogram_name: 'myapp'")
+
+
+def test_phases_phase2_decoder_and_sorted_data_fields():
+    out = render_phases(REALISTIC_DATA)
+    assert "\tname: 'myapp_decoder'" in out
+    assert out.index("\tdstuser: 'bob'") < out.index("\tstatus: 'failed'")
+
+
+def test_phases_phase3_rule_fields_in_official_order():
+    out = render_phases(REALISTIC_DATA)
+    assert (
+        out.index("\tid: '100101'")
+        < out.index("\tlevel: '6'")
+        < out.index("\tdescription: 'myapp: user login failed.'")
+        < out.index("\tgroups: '['hw', 'local']'")
+        < out.index("\tfiredtimes: '1'")
+    )
+
+
+def test_phases_no_decoder_message():
+    data = {"output": {"rule": {"id": "1002"}}, "alert": False, "codemsg": 1}
+    out = render_phases(data)
+    assert "\tNo decoder matched." in out
+    assert "**Alert to be generated." not in out
+
+
+def test_phases_no_rule_skips_phase3():
+    data = {"output": {"full_log": "hello"}, "alert": False, "codemsg": 1}
+    out = render_phases(data)
+    assert "**Phase 3:" not in out
+    assert "**Phase 2: Completed decoding." in out
+
+
+def test_phases_rules_debug_block_and_indentation():
+    data = dict(REALISTIC_DATA)
+    data["rules_debug"] = ["* Rule 100101 matched.", "Rule 100100 matched."]
+    out = render_phases(data)
+    assert "**Rule debugging:" in out
+    assert "\t\t* Rule 100101 matched." in out
+    assert "\tRule 100100 matched." in out
+
+
+def test_phases_nested_dict_uses_dotted_prefix():
+    data = {"output": {"decoder": {"name": "d", "parent": "p"}, "data": {"nested": {"x": "1"}}}, "alert": False}
+    out = render_phases(data)
+    assert "\tparent: 'p'" in out
+    assert "\tnested.x: '1'" in out
+
+
+def test_phases_does_not_mutate_input():
+    import copy
+
+    data = copy.deepcopy(REALISTIC_DATA)
+    render_phases(data)
+    assert data == REALISTIC_DATA
+
+
+def test_phases_handles_empty_and_none():
+    assert render_phases({}) == "**Phase 1: Completed pre-decoding.\n\n**Phase 2: Completed decoding.\n\tNo decoder matched."
+    assert render_phases(None) == render_phases({})
 
 
 def make_report():

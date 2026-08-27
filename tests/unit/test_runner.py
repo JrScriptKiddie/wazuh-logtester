@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from wlogtest.client import LogtestError
+from wlogtest.client import LogtestError, LogtestTransportError
 from wlogtest.dataset import Dataset, TestCase
 
 TestCase.__test__ = False
@@ -141,6 +141,25 @@ def test_shared_session_continues_after_error(fake_client):
     assert [r.verdict.status for r in report.results] == ["pass", "error", "pass"]
     assert [call["token"] for call in client.calls] == [None, "shared01", "shared01"]
     assert client.removed == ["shared01"]
+
+
+def test_transport_error_sets_error_verdict_and_continues(fake_client):
+    client = fake_client(
+        [
+            LogtestTransportError("cannot connect"),
+            response(token="tok00002"),
+        ]
+    )
+    dataset = make_dataset(
+        tests=[
+            make_case("down", "bad", expect={"alert": True}),
+            make_case("fine", "good", expect={"alert": True}),
+        ]
+    )
+    report = DatasetRunner(client, dataset).run()
+    statuses = [result.verdict.status for result in report.results]
+    assert statuses == ["error", "pass"]
+    assert report.results[0].verdict.error == "cannot connect"
 
 
 def test_remove_session_failure_is_best_effort(fake_client):

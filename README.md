@@ -34,12 +34,37 @@ docker compose -f docker/docker-compose.yml run --rm runner run /data/datasets/b
 docker compose -f docker/docker-compose.yml run --rm runner run /data/datasets/correlation.json
 ```
 
-Проверка одного события (как оригинальный `wazuh-logtest`):
+Проверка одного события (как оригинальный `wazuh-logtest` — тот же вывод из
+трёх фаз: pre-decoding → decoding → rule matching):
 
 ```bash
 docker compose -f docker/docker-compose.yml run --rm runner \
   logtest -e "Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=failed"
 ```
+
+```
+**Phase 1: Completed pre-decoding.
+	full event: 'Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=failed'
+	timestamp: 'Aug 27 10:00:00'
+	hostname: 'myserver'
+	program_name: 'myapp'
+
+**Phase 2: Completed decoding.
+	name: 'myapp_decoder'
+	dstuser: 'alice'
+	status: 'failed'
+
+**Phase 3: Completed filtering (rules).
+	id: '100101'
+	level: '6'
+	description: 'myapp: user login failed.'
+	groups: '['hw', 'local']'
+	firedtimes: '1'
+**Alert to be generated.
+```
+
+Флаг `--json` печатает сырой JSON-ответ протокола (полезно для отладки).
+Флаг `--debug` включает трассировку правил (`**Rule debugging:` в выводе).
 
 Интерактивный режим с постоянной сессией:
 

@@ -39,6 +39,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# (c) build both runner images (runtime image + builder stage for pytest).
+# Done BEFORE starting the manager: builds must not race the container
+# (re)creation, and failures surface fast without a 120s socket wait.
+step "build runner images"
+$COMPOSE build runner runner-test
+
 # (a) start only the manager; runner containers are used via `compose run`.
 step "start manager"
 $COMPOSE up -d manager
@@ -57,10 +63,6 @@ for i in {1..24}; do
   fi
   sleep 5
 done
-
-# (c) build both runner images (runtime image + builder stage for pytest).
-step "build runner images"
-$COMPOSE build runner runner-test
 
 # (d) dataset that must fully pass; `set -e` fails the script on non-zero exit.
 step "run basic.json (expect exit 0)"
