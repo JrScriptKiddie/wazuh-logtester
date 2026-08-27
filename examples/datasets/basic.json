@@ -8,7 +8,7 @@
       "event": "Aug 27 10:00:00 myserver myapp[1234]: login user=alice status=ok",
       "expect": {
         "decoder.name": "myapp_decoder",
-        "data.user": "alice",
+        "data.dstuser": "alice",
         "data.status": "ok",
         "rule.id": "100100",
         "alert": true
@@ -28,7 +28,7 @@
       "event": "Aug 27 10:00:02 myserver myapp[1234]: login user=carol status=locked",
       "expect": {
         "decoder.name": "myapp_decoder",
-        "data.user": "carol",
+        "data.dstuser": "carol",
         "rule.id": "100100",
         "alert": true
       }

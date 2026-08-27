@@ -20,9 +20,13 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Docker CLI override for hosts where docker needs sudo:
+#   DOCKER="sudo docker" bash docker/test.sh
+DOCKER="${DOCKER:-docker}"
+
 # Relative paths inside docker/docker-compose.yml are relative to docker/,
 # not to this CWD, so the -f form below behaves the same from anywhere.
-COMPOSE="docker compose -f docker/docker-compose.yml"
+COMPOSE="$DOCKER compose -f docker/docker-compose.yml"
 
 step() { printf '\n=== %s ===\n' "$1"; }
 
@@ -84,6 +88,8 @@ echo "fail_demo.json correctly exited non-zero"
 #     container (offline-safe). depends_on makes compose wait for manager
 #     health before the run.
 step "pytest inside docker (unit + integration + coverage)"
-$COMPOSE run --rm -T runner-test python3 -m pytest --cov=wlogtest --cov-report=term-missing -q
+# -o addopts="" disables the pyproject default "-m not integration" so the
+# live-socket integration tests actually run here (docker only).
+$COMPOSE run --rm -T runner-test python3 -m pytest -o addopts="" --cov=wlogtest --cov-report=term-missing -q
 
 step "all docker checks passed"

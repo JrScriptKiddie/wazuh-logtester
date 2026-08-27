@@ -1,0 +1,15 @@
+.git
+.gitignore
+.venv
+.pytest_cache
+.coverage
+**/__pycache__
+*.pyc
+vendor
+tests
+skills
+docs
+examples
+README.md
+Makefile
+AGENTS.md

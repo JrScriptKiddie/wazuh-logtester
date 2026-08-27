@@ -10,17 +10,24 @@
 name: wazuh-logtest-offline
 
 services:
-  # The logtest engine: wazuh manager with analysisd + logtest server.
+  # The logtest engine: slim wlogtest-manager image (analysisd only, built
+  # from the wazuh-manager 4.14.7 RPM via the `manager` stage of
+  # docker/Dockerfile). No framework/API/wodles — just the engine, the
+  # default ruleset and the logtest server.
   manager:
-    image: wazuh/wazuh-manager:4.14.7
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: manager
+    image: wlogtest-manager:4.14.7
     volumes:
-      # Standard wazuh-docker config injection point. Read-only.
+      # Our config (rule_test enabled) over the RPM default. Read-only.
       # Contains <rule_test> enabled (threads=2, max_sessions=64).
-      - ./config/ossec.conf:/wazuh-config-mount/etc/ossec.conf:ro
+      - ./config/ossec.conf:/var/ossec/etc/ossec.conf:ro
       # Student decoders/rules from examples/ (user-defined ruleset dirs).
       # Default decoders/rules stay untouched under /var/ossec/ruleset/.
-      - ../../examples/decoders:/var/ossec/etc/decoders:ro
-      - ../../examples/rules:/var/ossec/etc/rules:ro
+      - ../examples/decoders:/var/ossec/etc/decoders:ro
+      - ../examples/rules:/var/ossec/etc/rules:ro
       # Named volume carries /var/ossec/queue incl. the logtest socket.
       - wazuh-queue:/var/ossec/queue
     healthcheck:
@@ -36,13 +43,14 @@ services:
   runner:
     build:
       context: ..          # repo root
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
+      target: runner
     image: wlogtest-runner:latest
     volumes:
       # Shared logtest socket (read-only is enough to connect as root).
       - wazuh-queue:/var/ossec/queue:ro
       # Example datasets: /data/datasets/*.json
-      - ../../examples:/data:ro
+      - ../examples:/data:ro
     depends_on:
       manager:
         condition: service_healthy
@@ -59,7 +67,7 @@ services:
     profiles: ["test"]
     build:
       context: ..
-      dockerfile: Dockerfile
+      dockerfile: docker/Dockerfile
       target: builder
     image: wlogtest-runner-builder:latest
     volumes:

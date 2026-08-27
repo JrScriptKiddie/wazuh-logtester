@@ -10,9 +10,11 @@
   (сокет `/var/ossec/queue/sockets/logtest`), модель датасета, движок вердиктов,
   раннер с поддержкой stateful-сессий (frequency / if_matched_sid / firedtimes),
   отчёты (console / JSON / JUnit) и CLI `wlogtest`.
-- **`manager`** — контейнер `wazuh/wazuh-manager:4.14.7`: настоящий analysisd —
-  движок разбора логов (декодеры → правила → корреляция). Студенческие
-  декодеры/правила монтируются в `/var/ossec/etc/decoders` и `/var/ossec/etc/rules`.
+- **`manager`** — контейнер `wlogtest-manager:4.14.7` (собирается из
+  `docker/Dockerfile`, стадия `manager`): настоящий analysisd 4.14.7 из RPM
+  wazuh-manager, без framework/API/wodles — только движок разбора логов
+  (декодеры → правила → корреляция). Студенческие декодеры/правила монтируются
+  в `/var/ossec/etc/decoders` и `/var/ossec/etc/rules`.
 - **`runner`** — контейнер `python:3.12-slim` с пакетом `wlogtest`, общается с
   manager через общий volume `/var/ossec/queue` (там живёт unix-сокет logtest).
 - **`examples/`** — эталонные декодер/правила и три датасета: `basic` (всё зелёное),
@@ -23,7 +25,7 @@
 ## Быстрый старт
 
 ```bash
-# один раз на машине с интернетом (образы закешируются)
+# один раз на машине с интернетом (скачивается RPM wazuh-manager и собираются образы)
 docker compose -f docker/docker-compose.yml up -d manager
 docker compose -f docker/docker-compose.yml build runner
 
@@ -116,9 +118,9 @@ docker compose -f docker/docker-compose.yml restart manager
 
 ## Полностью офлайн (air-gapped класс)
 
-1. На машине с сетью: `docker pull wazuh/wazuh-manager:4.14.7 python:3.12-slim`
-   и соберите раннер: `docker compose -f docker/docker-compose.yml build runner`.
-2. `docker save wazuh/wazuh-manager:4.14.7 wlogtest-runner python:3.12-slim | gzip > wlogtest-images.tar.gz`
+1. На машине с сетью: `docker compose -f docker/docker-compose.yml build manager runner runner-test`
+   (для manager это скачает RPM wazuh-manager 4.14.7 ~490 МБ — только один раз).
+2. `docker save wlogtest-manager:4.14.7 wlogtest-runner wlogtest-runner-builder python:3.12-slim | gzip > wlogtest-images.tar.gz`
 3. В классе: `docker load < wlogtest-images.tar.gz` — всё готово.
 
 ## Разработка и тесты

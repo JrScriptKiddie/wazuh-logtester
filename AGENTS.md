@@ -72,8 +72,10 @@ skills before starting work (see `docs/DESIGN.md` for exact API contracts).
 2. TDD: failing test → implementation → refactor. Tests at the DESIGN.md seams.
 3. Never claim completion without fresh verification output (exit codes included).
 4. Runtime deps of `wlogtest`: **none** (stdlib only). Dev deps: pytest, pytest-cov.
-5. Docker is NOT available on the dev host: run `make test` locally; `make test-docker`
-   is validated on a Docker-enabled machine/CI.
+5. Docker is available on the dev host via `sudo docker` (NOPASSWD configured);
+   `make test` runs locally, `make test-docker` runs the full in-docker
+   validation (slim `wlogtest-manager` image: analysisd 4.14.7 from RPM, ~302MB,
+   not the ~1.5GB official image).
 6. Do not edit `vendor/wazuh/**`. Attribution stays in `vendor/wazuh/README.md`.
 7. Commands: `python3 -m pytest` (unit), `python3 -m pytest --cov=wlogtest`,
    `python3 -m wlogtest.cli --help`.

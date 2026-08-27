@@ -7,17 +7,20 @@ these signatures exactly; tests are written against this contract.
 
 ```
 host (students)                    docker network
-┌─────────────────────────────┐    ┌───────────────────────────┐
-│ docker compose run runner   │    │ manager (wazuh-manager)   │
-│  wlogtest run /data/ds.json ├──► │ analysisd (logtest server)│
-│  python:3.12-slim image     │    │ /var/ossec/etc/decoders   │
-└──────────┬──────────────────┘    │ /var/ossec/etc/rules      │
+┌─────────────────────────────┐    ┌───────────────────────────────┐
+│ docker compose run runner   │    │ manager (wlogtest-manager)    │
+│  wlogtest run /data/ds.json ├──► │ analysisd only (logtest srv)  │
+│  python:3.12-slim image     │    │ /var/ossec/etc/decoders       │
+└──────────┬──────────────────┘    │ /var/ossec/etc/rules          │
            └── shared volume: /var/ossec/queue ──► socket logtest
 ```
 
-- `wazuh/wazuh-manager:4.14.7` is the logtest engine (analysisd). Custom decoders/rules
-  are bind-mounted into `/var/ossec/etc/decoders|rules`. `<rule_test>` enabled in
-  `docker/config/ossec.conf`.
+- `wlogtest-manager:4.14.7` is the logtest engine: a slim, locally-built image
+  containing only wazuh-analysisd 4.14.7 (from the wazuh-manager RPM, base
+  amazonlinux:2023) + libs + default ruleset (`/var/ossec/ruleset/`) + lists.
+  No framework/API/wodles (~302MB vs ~1.5GB official image). Custom
+  decoders/rules are bind-mounted into `/var/ossec/etc/decoders|rules`.
+  `<rule_test>` enabled in `docker/config/ossec.conf`.
 - `runner` image = `python:3.12-slim` + our `wlogtest` package (no runtime deps).
 - Socket shared via named volume `wazuh-queue:/var/ossec/queue`.
 
@@ -200,7 +203,9 @@ Module entry: `python3 -m wlogtest.cli`. Console script `wlogtest` in pyproject.
 
 ## examples/ (implementer)
 - `examples/decoders/9999_hw_decoders.xml` — custom decoder for student logs
-  (program `myapp`: `<program_name>myapp</program_name>`, regex extracts fields e.g. user, action).
+  (program `myapp`: `<program_name>myapp</program_name>`, regex extracts fields
+  via `<order>user, status</order>`; note Wazuh maps the `user` order field to
+  the alert field `data.dstuser`).
 - `examples/rules/9999_hw_rules.xml` — rule 100100 (level 5, single event, fields),
   rule 100101 (child, if_sid 100100), rule 100102 (frequency 3 in 60s, level 10 — correlation).
 - `examples/datasets/basic.json` — decoders+single rules verdicts (all pass).
@@ -210,34 +215,59 @@ Module entry: `python3 -m wlogtest.cli`. Console script `wlogtest` in pyproject.
   to demonstrate FAIL verdicts and non-zero exit (educational).
 
 ## docker/ (infra)
-- `docker/Dockerfile` — multi-stage: stage 1 `python:3.12-slim` builds wheel
-  (`pip wheel . --no-deps`), stage 2 `python:3.12-slim` installs wheel, sets
-  `ENV WAZUH_LOGTEST_SOCKET=/var/ossec/queue/sockets/logtest`, `ENTRYPOINT ["wlogtest"]`,
-  non-root not required (root needed for socket perms), image tagged `wlogtest-runner`.
+- `docker/Dockerfile` — multi-stage:
+  - `builder` (`python:3.12-slim`): build toolchain + pytest/pytest-cov,
+    editable install, builds the wheel (compose service `runner-test`).
+  - `runner` (`python:3.12-slim`): installs the wheel only;
+    `ENV WAZUH_LOGTEST_SOCKET=/var/ossec/queue/sockets/logtest`,
+    `ENTRYPOINT ["wlogtest"]`, non-root not required (root needed for socket
+    perms), image tagged `wlogtest-runner`.
+  - `manager` (`amazonlinux:2023`): downloads the pinned wazuh-manager RPM
+    (`packages.wazuh.com/4.x/yum/wazuh-manager-4.14.7-1.x86_64.rpm`, build-time
+    network only), `rpm -ivh --nodeps`, then strips to the logtest engine in
+    the SAME layer (fetch+install+strip must be one layer, else the full
+    ~1.3GB unpacked RPM stays in the image history): keeps
+    `bin/wazuh-analysisd`, `lib/`, `ruleset/{decoders,rules}`, `etc/` (incl.
+    `etc/shared/ar.conf` — required at config load, and `etc/lists`),
+    `queue/`, `logs/`, `stats/`, `var/run`; removes framework/api/wodles/
+    agentless/active-response/integrations/logcollector/templates/tmp/
+    backup/var/db/ruleset/sca + all binaries except wazuh-analysisd. Creates
+    the `wazuh` user (analysisd drops privileges to it). Build gate:
+    `wazuh-analysisd -t` must pass on the baked config. Entrypoint recreates
+    queue subdirs (fresh volume shadows the in-image tree), chowns them, and
+    runs `wazuh-analysisd -f`. Image tagged `wlogtest-manager:4.14.7`
+    (~302MB vs ~1.5GB official).
 - `docker/docker-compose.yml` — services:
-  - `manager`: image `wazuh/wazuh-manager:4.14.7`; volumes:
-    `./config/ossec.conf:/wazuh-config-mount/etc/ossec.conf:ro`,
-    `../../examples/decoders:/var/ossec/etc/decoders:ro`,
-    `../../examples/rules:/var/ossec/etc/rules:ro`,
+  - `manager`: build `{context: .., dockerfile: docker/Dockerfile,
+    target: manager}`, image `wlogtest-manager:4.14.7`; volumes:
+    `./config/ossec.conf:/var/ossec/etc/ossec.conf:ro`,
+    `../examples/decoders:/var/ossec/etc/decoders:ro`,
+    `../examples/rules:/var/ossec/etc/rules:ro`,
     `wazuh-queue:/var/ossec/queue`; healthcheck:
-    `test -S /var/ossec/queue/sockets/logtest` (start_period 60s).
-  - `runner`: build `.` (context repo root, dockerfile docker/Dockerfile); volumes:
-    `wazuh-queue:/var/ossec/queue:ro`, `../../examples:/data:ro`; `depends_on: manager:
-    condition: service_healthy`; default command `run /data/datasets/basic.json`.
-- `docker/config/ossec.conf` — default 4.14.7 manager ossec.conf (fetch from
-  wazuh/wazuh-docker v4.14.7 `single-node/config/wazuh_cluster/wazuh_manager.conf`) with
-  `<rule_test><enabled>yes</enabled><threads>2</threads><max_sessions>64</max_sessions>
-  <session_timeout>15m</session_timeout></rule_test>` ensured; ruleset keeps
-  `etc/decoders` + `etc/rules` dirs.
-- `docker/test.sh` — `docker compose up -d manager` → wait for socket (timeout 120s) →
-  `docker compose build runner` → `docker compose run --rm runner run /data/datasets/basic.json` +
-  correlation dataset → `docker compose run --rm -e WAZUH_LOGTEST_SOCKET=... -v
-  $(pwd):/src runner sh -c "pytest"` (unit+integration inside docker) → teardown. Exit code
-  reflects test results. Print fresh output of every step.
-- `Makefile` — `test` (python3 -m pytest), `test-docker` (docker/test.sh), `build`,
-  `up`, `down`, `cov` (pytest --cov with gate check).
-- `docker/README.md` — offline usage instructions for students (pull once, then run
-  with `--network none` style instructions; note docker is unavailable on this dev host).
+    `test -S /var/ossec/queue/sockets/logtest` (start_period 30s).
+    (Bind paths are relative to the compose file dir `docker/`, so `../examples`.)
+  - `runner`: build `.` (context repo root, dockerfile docker/Dockerfile,
+    target runner); volumes: `wazuh-queue:/var/ossec/queue:ro`,
+    `../examples:/data:ro`; `depends_on: manager: condition: service_healthy`;
+    default command `run /data/datasets/basic.json`.
+  - `runner-test`: builder stage under profile `test`; repo mounted at /src.
+- `docker/config/ossec.conf` — based on the default 4.14.7 manager config
+  (wazuh-docker v4.14.7 `single-node/config/wazuh_cluster/wazuh_manager.conf`)
+  with `<rule_test><enabled>yes</enabled><threads>2</threads><max_sessions>64
+  </max_sessions><session_timeout>15m</session_timeout></rule_test>` ensured;
+  ruleset keeps `ruleset/decoders` + `ruleset/rules` (defaults) plus
+  `etc/decoders` + `etc/rules` (user dirs); cluster is `disabled`.
+- `docker/test.sh` — `docker compose up -d manager` (builds the manager image
+  on first run) → wait for socket (timeout 120s) → `docker compose build
+  runner runner-test` → `run /data/datasets/basic.json` + correlation (exit 0)
+  → fail_demo (must exit 1) → `runner-test python3 -m pytest --cov=wlogtest`
+  (unit+integration inside docker) → teardown `down -v`. Exit code reflects
+  test results. Honors `DOCKER="sudo docker"` for hosts where docker needs sudo.
+- `Makefile` — `test` (python3 -m pytest), `test-docker` (docker/test.sh),
+  `build`, `up`, `down`, `cov` (pytest --cov with gate check).
+- `docker/README.md` — offline usage instructions for students (build/save once,
+  then run with no network; docker save/load of `wlogtest-manager`,
+  `wlogtest-runner`, `wlogtest-runner-builder`).
 
 ## README.md (root, Russian)
 Student-facing: what it is, quickstart (docker compose), CLI examples, dataset format
