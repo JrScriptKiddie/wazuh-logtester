@@ -22,6 +22,9 @@ mshta, regsvr32 — включая варианты с обфускацией а
 ## 2. Стенд и исходные данные
 
 - Инструмент: wazuh-logtester — offline-стенд Wazuh manager (analysisd + logtest).
+- **Актуальная ветка экзамена:** `exam/l2-detection` —
+  https://github.com/JrScriptKiddie/wazuh-logtester/tree/exam/l2-detection
+  (каталог экзамена — `exam/l2-detection/`).
 - Требования: Docker + Compose v2; на Apple Silicon каждая команда выполняется
   с `DOCKER_DEFAULT_PLATFORM=linux/amd64` (эмуляция amd64).
 - Рабочий файл: `exam/l2-detection/rules/local_rules.xml` — монтируется в

@@ -38,6 +38,10 @@
 
 Все команды выполняются из корня репозитория wazuh-logtester.
 
+Актуальная ветка экзамена — `exam/l2-detection`:
+https://github.com/JrScriptKiddie/wazuh-logtester/tree/exam/l2-detection
+(каталог экзамена — `exam/l2-detection/`).
+
 ### 1. Manager с рабочими правилами аналитика
 
 ```bash
