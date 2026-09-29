@@ -26,3 +26,7 @@ freeipa_solution_answers.tar.gz
 # Игнорируем содержимое каталога, а не сам каталог (см. выше).
 exam/l2-detection/solution/*
 !exam/l2-detection/solution/README.md
+
+# Экзамен L2: ключ проверки (разбор эталона, спойлеры) — только локально
+# у инструктора, в публичный репозиторий не попадает.
+exam/l2-detection/docs/INSTRUCTOR_KEY.md

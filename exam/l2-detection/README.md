@@ -19,7 +19,8 @@
    подавления, риски слепых зон, MITRE-маппинг, разбор evasion-обходов.
 
 Регламент выполнения для аналитика — [docs/EXAM_BRIEF.md](docs/EXAM_BRIEF.md).
-Ключ проверки для инструктора — [docs/INSTRUCTOR_KEY.md](docs/INSTRUCTOR_KEY.md).
+Ключ проверки для инструктора — `docs/INSTRUCTOR_KEY.md` (локально, в git
+не публикуется).
 
 ## Требования
 
@@ -85,7 +86,7 @@ XML-Architecture / Analyst Report); код возврата 0 при итоге 
 | `tests/run_tests.py` | Прогон unit-кейсов; код возврата 0 при 30/30 PASS. |
 | `tests/grade_exam.py` | Автогрейдер 0–100: рубрика, `--json`, параметр `--rules`. |
 | `docs/EXAM_BRIEF.md` | Регламент выполнения экзамена для аналитика L2. |
-| `docs/INSTRUCTOR_KEY.md` | Ключ проверки: эталон, стартовое состояние, античит, ограничения. |
+| `docs/INSTRUCTOR_KEY.md` | Ключ проверки: эталон, стартовое состояние, античит, ограничения. Локально у инструктора, вне git (как и `solution/`). |
 | `solution/` | Эталонные правила (`solution_rules.xml`) и пояснение; каталог вне git — только локально у инструктора. |
 | `docker/compose.exam.yml` | Оверрайд базового стека: рабочие правила вместо examples + монтирование каталога экзамена в runner. |
 | `docker/compose.exam-solution.yml` | Оверрайд для проверки эталона: эталонные правила вместо рабочих. |
@@ -106,5 +107,5 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f docker/docker-compose.yml 
   --rules /exam/solution/solution_rules.xml
 ```
 
-Полный порядок проверки и разбор эталона — в
-[docs/INSTRUCTOR_KEY.md](docs/INSTRUCTOR_KEY.md).
+Полный порядок проверки и разбор эталона — в `docs/INSTRUCTOR_KEY.md`
+(локально у инструктора; в репозитории не публикуется).
