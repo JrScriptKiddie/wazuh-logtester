@@ -1,0 +1,22 @@
+# Экзамен L2: прогон ЭТАЛОННЫХ правил (каталог solution/ — вне git).
+#
+# Использование (из корня wazuh-logtester, только у инструктора):
+#
+#   docker compose -f docker/docker-compose.yml \
+#     -f exam/l2-detection/docker/compose.exam-solution.yml up -d manager
+#
+#   docker compose -f docker/docker-compose.yml \
+#     -f exam/l2-detection/docker/compose.exam-solution.yml run --rm runner \
+#     run /exam/test_dataset/test_suite.json
+name: wazuh-logtest-offline
+
+services:
+  manager:
+    volumes:
+      # Эталонные правила вместо рабочих правил экзамена.
+      # Путь — от PROJECT DIRECTORY (docker/), см. compose.exam.yml.
+      - ../exam/l2-detection/solution:/var/ossec/etc/rules:ro
+
+  runner:
+    volumes:
+      - ../exam/l2-detection:/exam:ro

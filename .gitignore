@@ -21,3 +21,8 @@ homework/freeipa_solution/*
 
 # Архив с ответами для локальной раздачи преподавателем — не коммитится
 freeipa_solution_answers.tar.gz
+
+# Экзамен L2: эталонные правила — только локально у инструктора.
+# Игнорируем содержимое каталога, а не сам каталог (см. выше).
+exam/l2-detection/solution/*
+!exam/l2-detection/solution/README.md

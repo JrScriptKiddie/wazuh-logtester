@@ -1,0 +1,32 @@
+# Экзамен L2 (LOLBAS Detection): оверрайд базового стека wazuh-logtester.
+#
+# Запуск (из корня wazuh-logtester):
+#
+#   docker compose -f docker/docker-compose.yml \
+#     -f exam/l2-detection/docker/compose.exam.yml up -d manager
+#
+#   docker compose -f docker/docker-compose.yml \
+#     -f exam/l2-detection/docker/compose.exam.yml run --rm runner \
+#     run /exam/test_dataset/test_suite.json
+#
+#   docker compose -f docker/docker-compose.yml \
+#     -f exam/l2-detection/docker/compose.exam.yml run --rm \
+#     --entrypoint python3 runner /exam/tests/grade_exam.py
+#
+# Относительные пути ниже резолвятся от PROJECT DIRECTORY — каталога первого
+# compose-файла (docker/), а НЕ от каталога этого override. Поэтому пути идут
+# через ../exam/l2-detection/.
+name: wazuh-logtest-offline
+
+services:
+  manager:
+    volumes:
+      # Рабочие правила экзамена заменяют examples/rules базового стека
+      # (запись с тем же target в контейнере перекрывает базовую).
+      - ../exam/l2-detection/rules:/var/ossec/etc/rules:ro
+
+  runner:
+    volumes:
+      # Весь каталог экзамена: /exam/test_dataset, /exam/tests,
+      # /exam/ANALYST_REPORT.md.
+      - ../exam/l2-detection:/exam:ro
