@@ -24,9 +24,12 @@
 ## Требования
 
 - Docker + Compose v2.
-- Apple Silicon (arm64): перед каждой командой обязателен
-  `DOCKER_DEFAULT_PLATFORM=linux/amd64` — RPM Wazuh собирается только под
-  x86_64, на arm64 образ исполняется через эмуляцию (проверено, работает).
+- Apple Silicon (arm64): без `DOCKER_DEFAULT_PLATFORM=linux/amd64` сборка
+  падает с ошибкой `package wazuh-manager-… is intended for a different
+  architecture` — RPM Wazuh собран только под x86_64. Указывайте переменную
+  перед каждой командой либо сделайте `export DOCKER_DEFAULT_PLATFORM=linux/amd64`
+  один раз в сессии: образ соберётся и запустится под эмуляцией (Rosetta в
+  Docker Desktop). Проверено на M-серии.
 - Первый запуск собирает образы; полный прогон грейдера (1000 событий +
   30 unit-кейсов) — ~5–6 минут на Apple Silicon, на x86 быстрее.
 

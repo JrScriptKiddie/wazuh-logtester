@@ -28,6 +28,24 @@
 Требования: **docker + compose v2**
 (https://docs.docker.com/engine/install/).
 
+### Apple Silicon (arm64)
+
+RPM `wazuh-manager` собран только под x86_64, поэтому на Apple Silicon (и
+других arm64-хостах) сборка без флага падает с ошибкой
+`package wazuh-manager-4.14.7-1.x86_64 is intended for a different
+architecture`. Перед командами стека включите amd64-платформу — образ
+соберётся и запустится под эмуляцией (Rosetta в Docker Desktop):
+
+```bash
+export DOCKER_DEFAULT_PLATFORM=linux/amd64   # один раз в сессии
+docker compose -f docker/docker-compose.yml build
+```
+
+либо добавляйте `DOCKER_DEFAULT_PLATFORM=linux/amd64` к каждой команде
+`docker compose ...`. На x86-хостах ничего указывать не нужно; `runner` и
+`runner-test` тоже собираются под amd64 — для них это не критично, но стек
+должен быть одной платформы.
+
 ```bash
 # 1) Клонировать проект
 git clone https://github.com/JrScriptKiddie/wazuh-logtester.git

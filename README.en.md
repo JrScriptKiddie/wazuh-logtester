@@ -33,6 +33,24 @@ runs in Docker with zero network at runtime.
 Prerequisites: **docker + compose v2**
 (https://docs.docker.com/engine/install/).
 
+### Apple Silicon (arm64)
+
+The `wazuh-manager` RPM ships for x86_64 only, so on Apple Silicon (and other
+arm64 hosts) a build without the platform flag fails with
+`package wazuh-manager-4.14.7-1.x86_64 is intended for a different
+architecture`. Set the amd64 platform before running the stack — the image
+will be built and executed under emulation (Rosetta in Docker Desktop):
+
+```bash
+export DOCKER_DEFAULT_PLATFORM=linux/amd64   # once per shell session
+docker compose -f docker/docker-compose.yml build
+```
+
+or prefix every `docker compose ...` command with
+`DOCKER_DEFAULT_PLATFORM=linux/amd64`. Nothing to set on x86 hosts; `runner`
+and `runner-test` are also built for amd64 — not critical for them, but keep
+the whole stack on one platform.
+
 ```bash
 # 1) Clone the project
 git clone https://github.com/JrScriptKiddie/wazuh-logtester.git
