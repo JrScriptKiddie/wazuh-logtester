@@ -58,8 +58,18 @@ pcre2), чтение файлов экзамена (датасет, unit-кей�
 - редактировать `test_dataset/`, `tests/` и файлы эталона;
 - вмешиваться в работу контейнеров в обход правил стенда.
 
-Учтите: полный прогон грейдера занимает ~5–6 минут на Apple Silicon — планируйте
-время с запасом.
+Учтите: полный прогон грейдера занимает ~5–6 минут на Apple Silicon.
+В процессе разработки и отладки правил запускайте быстрый прогон
+`test_suite.json` (несколько секунд):
+
+```bash
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f docker/docker-compose.yml \
+  -f exam/l2-detection/docker/compose.exam.yml run --rm runner \
+  run /exam/test_dataset/test_suite.json
+```
+
+Полный прогон автогрейдера (1000 событий) выполняйте 1–2 раза на финальном
+этапе — это сэкономит 15–20 минут регламентного времени.
 
 ## 4. Задачи
 
@@ -125,16 +135,36 @@ DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f docker/docker-compose.yml 
   --entrypoint python3 runner /exam/tests/grade_exam.py
 ```
 
+Диагностика ложных срабатываний: `test_dataset/exam_dataset.json` — обычный
+датасет wazuh-logtester (у 950 шумовых событий ожидается `alert: false`).
+Прогон покажет, какие именно события алертят:
+
+```bash
+DOCKER_DEFAULT_PLATFORM=linux/amd64 docker compose -f docker/docker-compose.yml \
+  -f exam/l2-detection/docker/compose.exam.yml run --rm runner \
+  run /exam/test_dataset/exam_dataset.json
+```
+
+Строки `FAIL ... alert: expected False, actual True` — найденные FP (при
+необходимости отфильтруйте: `| grep -B1 "expected False, actual True"`).
+Мета-поля `expected_rule_id`/`mitre_id` в JSON — справочные: автогрейдер FP
+считает по факту (любой алерт или `level > 0` на шуме) и мету не учитывает.
+
 ### Задача 4. Аналитическая записка (10 баллов)
 
-Создайте файл `exam/l2-detection/ANALYST_REPORT.md` (не менее 600 символов):
+Создайте файл `exam/l2-detection/ANALYST_REPORT.md`. Автогрейдер проверяет
+5 чек-пунктов по 2 балла:
 
-1. обоснование критериев подавления — какие сигналы доверия выбраны и почему;
-2. риски слепых зон и способ их контроля;
-3. MITRE-маппинг всех четырёх детектов (certutil / rundll32 / mshta / regsvr32;
+1. **объём** — не менее 600 символов осмысленного текста (без шаблонных
+   заполнителей);
+2. обоснование критериев подавления — какие сигналы доверия выбраны и почему
+   (контекстная связка «родитель + регламентная команда» против argument
+   smuggling);
+3. риски слепых зон и способ их контроля;
+4. MITRE-маппинг всех четырёх детектов (certutil / rundll32 / mshta / regsvr32;
    T1105 / T1140 / T1218);
-4. разбор evasion-обходов (регистр, кавычки и пробелы, относительные пути,
-   UNC/WebDAV, ординалы, скрытые расширения).
+5. разбор evasion-обходов (регистр, кавычки и пробелы, относительные пути,
+   UNC/WebDAV, ординалы, скрытые расширения, about:-протокол, ключ -i:).
 
 ## 5. Рубрика автогрейдера (0–100)
 
