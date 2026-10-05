@@ -2,14 +2,16 @@
 """Экзамен L2 (Alert Fatigue + LOLBAS): автогрейдер 0–100.
 
 Что делает:
-  1. Прогоняет 1000 событий exam_dataset.json и 30 unit-кейсов test_suite.json
+  1. Прогоняет 1000 событий exam_dataset.json и 34 unit-кейса test_suite.json
      через wazuh-logtester (текущие правила в manager — правила аналитика).
   2. Считает рубрику:
        FP Suppression  25 — 0 алертов на 950 легитимных событий И сохранённый
-                            детект 100250 (3 blind-spot кейса); >=5% алертов -> 0.
+                            детект 100250 (5 blind-spot кейсов, включая argument
+                            smuggling и malicious taskeng); >=5% алертов -> 0.
        LOLBAS Detection 30 — покрытие 50 атак (certutil/rundll32/mshta/regsvr32).
-       Evasion         25 — 17 edge-кейсов (в датасете + suite): регистр,
-                            кавычки/пробелы, relative path, UNC/WebDAV, ординалы.
+       Evasion         25 — 19 edge-кейсов (в датасете + suite): регистр,
+                            кавычки/пробелы, relative path, UNC/WebDAV, ординалы,
+                            about:-протокол, ключ -i:.
        XML/Architecture 10 — синтаксис, иерархия if_sid, MITRE-теги, запреты.
        Analyst Report  10 — ANALYST_REPORT.md (риски, обоснование, MITRE).
        PASSED при >= 80.
@@ -40,7 +42,7 @@ REPORT_PATH = EXAM_ROOT / "ANALYST_REPORT.md"
 
 PASS_THRESHOLD = 80
 FP_TOLERANCE = 0.05
-BLINDSPOT_EXPECTED = 3
+BLINDSPOT_EXPECTED = 5
 
 FAMILIES = ("certutil", "rundll32", "mshta", "regsvr32")
 
@@ -131,7 +133,7 @@ def grade_fp(noise_pairs: list, blindspot_pairs: list) -> dict:
     fp = [meta for meta, actual in noise_pairs if _alert(actual) or (_rule_level(actual) or 0) > 0]
     fp_pct = len(fp) / len(noise_pairs) if noise_pairs else 1.0
     blind_ok = sum(1 for meta, actual in blindspot_pairs if _detected(meta, actual))
-    blind_ratio = (blind_ok / len(blindspot_pairs)) if blindspot_pairs else 1.0
+    blind_ratio = min(1.0, blind_ok / BLINDSPOT_EXPECTED) if BLINDSPOT_EXPECTED else 1.0
     factor = max(0.0, 1.0 - fp_pct / FP_TOLERANCE)
     return {
         "score": 25.0 * factor * blind_ratio,

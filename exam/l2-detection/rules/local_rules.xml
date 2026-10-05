@@ -11,13 +11,17 @@
 
   TODO аналитика:
     1. Снизить Alert Fatigue: подавить ложные срабатывания 100250 для
-       легитимной административной активности с помощью дочерних правил
-       level="0" (доверенные родительские процессы и доверенные
-       командные строки обслуживания).
+       легитимной административной активности дочерними правилами
+       level="0". Подавление обязано быть контекстным (проверенный
+       родитель И/ИЛИ строго регламентная команда): глушение по одной
+       подстроке аргументов (argument smuggling) или общий whitelist
+       интерактивных процессов и планировщика создают слепые зоны —
+       подозрительные запуски обязаны алертить и проверяются тестами.
     2. Реализовать детекты LOLBAS 100801 (certutil), 100802 (rundll32),
        100803 (mshta), 100804 (regsvr32). Скелеты заготовок — в конце файла.
+       Требуемое покрытие шире «очевидных» форм: см. подсказки в блоках TODO.
 
-  Проверка: wlogtest run /exam/test_dataset/test_suite.json
+  Проверка: wlogtest run /exam/test_dataset/test_suite.json (34 кейса)
 -->
 <group name="windows,sysmon,">
 
@@ -37,9 +41,10 @@
   <!-- ==================================================================
        TODO 100801: certutil.exe (LOLBAS)
        image:       certutil.exe, в т.ч. пути вида C:\...\certutil.exe
-       commandLine: загрузка (-urlcache с флагом -f или -split) и/или
-                    декодирование (-decode, /decode, -decodehex) с целью
-                    в сеть либо в профиль пользователя/Temp/Public/ProgramData.
+       commandLine: загрузка (-urlcache с флагом -f или -split, в т.ч.
+                    слитный -split-f) и/или декодирование (-decode,
+                    /decode, -decodehex) с целью в сеть либо в профиль
+                    пользователя/Temp/Public/ProgramData.
        MITRE: T1105 (Ingress Tool Transfer), T1140 (Deobfuscate/Decode Files)
        Раскомментируйте блок и замените TODO на условия pcre2.
 
@@ -59,10 +64,12 @@
   <!-- ==================================================================
        TODO 100802: rundll32.exe (LOLBAS)
        image:       rundll32.exe
-       commandLine: запуск DLL из C:\Users\, \AppData\, \Temp\, \Public\
-                    или UNC-пути (SMB/WebDAV), ординалы (,#N), скрытые
-                    расширения (.dat, .png); кавычки и лишние пробелы не
-                    должны ломать детект.
+       commandLine: запуск DLL/данных из C:\Users\, \AppData\, \Temp\,
+                    \Public\, \ProgramData\, \PerfLogs\ или UNC-пути
+                    (SMB/WebDAV), ординалы (,#N), скрытые и нестандартные
+                    расширения (.dat, .png, .tmp, .txt, .bin, файл без
+                    расширения перед запятой экспорта); кавычки и лишние
+                    пробелы не должны ломать детект.
        MITRE: T1218.011 (System Binary Proxy Execution: Rundll32)
        Раскомментируйте блок и замените TODO на условия pcre2.
 
@@ -81,8 +88,10 @@
   <!-- ==================================================================
        TODO 100803: mshta.exe (LOLBAS)
        image:       mshta.exe
-       commandLine: удалённый HTA (https?://), inline vbscript:/javascript:,
-                    локальный HTA из пользовательских каталогов/UNC.
+       commandLine: удалённый HTA (https?://), inline vbscript:/javascript:
+                    и about: (inline-обработчики), локальный HTA из
+                    пользовательских каталогов/UNC/нестандартных путей
+                    (в т.ч. прямой запуск .hta).
        MITRE: T1218.005 (System Binary Proxy Execution: Mshta)
        Раскомментируйте блок и замените TODO на условия pcre2.
 
@@ -101,9 +110,11 @@
   <!-- ==================================================================
        TODO 100804: regsvr32.exe (LOLBAS, Squiblydoo)
        image:       regsvr32.exe
-       commandLine: scrobj.dll вместе с /i: и сетевым/пользовательским
+       commandLine: scrobj.dll вместе с ключом scriptlet (поддержите оба
+                    разделителя: /i: и -i:) и сетевым/пользовательским
                     SCT-ресурсом (URL, UNC, профиль пользователя, Temp,
-                    Public, ProgramData); кавычки и пробелы допустимы.
+                    Public, ProgramData, PerfLogs); кавычки и пробелы
+                    допустимы.
        MITRE: T1218.010 (System Binary Proxy Execution: Regsvr32)
        Раскомментируйте блок и замените TODO на условия pcre2.
 
