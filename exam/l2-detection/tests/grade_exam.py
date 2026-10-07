@@ -5,16 +5,18 @@
   1. Прогоняет 1000 событий exam_dataset.json и 34 unit-кейса test_suite.json
      через wazuh-logtester (текущие правила в manager — правила аналитика).
   2. Считает рубрику:
-       FP Suppression  25 — 0 алертов на 950 легитимных событий И сохранённый
+       FP Suppression  30 — 0 алертов на 950 легитимных событий И сохранённый
                             детект 100250 (5 blind-spot кейсов, включая argument
                             smuggling и malicious taskeng); >=5% алертов -> 0.
-       LOLBAS Detection 30 — покрытие 50 атак (certutil/rundll32/mshta/regsvr32).
+       LOLBAS Detection 35 — покрытие 50 атак (certutil/rundll32/mshta/regsvr32).
        Evasion         25 — 19 edge-кейсов (в датасете + suite): регистр,
                             кавычки/пробелы, relative path, UNC/WebDAV, ординалы,
                             about:-протокол, ключ -i:.
        XML/Architecture 10 — синтаксис, иерархия if_sid, MITRE-теги, запреты.
-       Analyst Report  10 — ANALYST_REPORT.md (риски, обоснование, MITRE).
        PASSED при >= 80.
+
+  ANALYST_REPORT.md не оценивается (аналитик пишет ход мыслей и затраченное
+  время; автогрейдер его не читает).
 
 Запуск (из корня wazuh-logtester), стек должен быть поднят с правилами аналитика:
 
@@ -38,7 +40,6 @@ EXAM_ROOT = Path(__file__).resolve().parents[1]
 DATASET_PATH = EXAM_ROOT / "test_dataset" / "exam_dataset.json"
 SUITE_PATH = EXAM_ROOT / "test_dataset" / "test_suite.json"
 RULES_PATH = EXAM_ROOT / "rules" / "local_rules.xml"
-REPORT_PATH = EXAM_ROOT / "ANALYST_REPORT.md"
 
 PASS_THRESHOLD = 80
 FP_TOLERANCE = 0.05
@@ -136,7 +137,7 @@ def grade_fp(noise_pairs: list, blindspot_pairs: list) -> dict:
     blind_ratio = min(1.0, blind_ok / BLINDSPOT_EXPECTED) if BLINDSPOT_EXPECTED else 1.0
     factor = max(0.0, 1.0 - fp_pct / FP_TOLERANCE)
     return {
-        "score": 25.0 * factor * blind_ratio,
+        "score": 30.0 * factor * blind_ratio,
         "fp": len(fp),
         "total": len(noise_pairs),
         "fp_pct": fp_pct,
@@ -156,7 +157,7 @@ def grade_detection(pairs: list) -> dict:
             if _detected(meta, actual):
                 by_family[fam][0] += 1
     return {
-        "score": 30.0 * (len(ok) / len(attacks)) if attacks else 0.0,
+        "score": 35.0 * (len(ok) / len(attacks)) if attacks else 0.0,
         "detected": len(ok),
         "total": len(attacks),
         "by_family": by_family,
@@ -231,31 +232,6 @@ def grade_xml(path: Path) -> dict:
     return {"score": score, "notes": notes}
 
 
-def grade_report(path: Path) -> dict:
-    if not path.exists():
-        return {"score": 0.0, "notes": [f"{path.name} отсутствует — 0/10"]}
-    text = path.read_text(encoding="utf-8", errors="ignore")
-    low = text.lower()
-    checks = [
-        ("содержательность (>= 600 символов)", len(text) >= 600),
-        ("обоснование подавления (подавл/suppress/100251/100252)", any(
-            k in low for k in ("подавл", "suppress", "100251", "100252")
-        )),
-        ("риски слепых зон (слеп/blind)", any(k in low for k in ("слеп", "blind"))),
-        ("LOLBAS-семейства + MITRE (certutil/rundll32/mshta/regsvr32, T1105/T1140/T1218)", (
-            all(f in low for f in FAMILIES)
-            and any(k in low for k in ("t1105", "t1140"))
-            and "t1218" in low
-        )),
-        ("evasion-обходы (обход/evasion/кавычк/unc/webdav/регистр)", any(
-            k in low for k in ("обход", "evasion", "кавычк", "unc", "webdav", "регистр")
-        )),
-    ]
-    passed = sum(1 for _, ok in checks if ok)
-    notes = [f"{'✔' if ok else '✘'} {name}" for name, ok in checks]
-    return {"score": 2.0 * passed, "notes": notes, "passed": passed, "total": len(checks)}
-
-
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description="Автогрейдер экзамена L2 (0–100).")
     parser.add_argument("--socket", default=None, help="путь к сокету logtest")
@@ -286,9 +262,8 @@ def main(argv=None) -> int:
     detection = grade_detection(dataset_pairs)
     evasion = grade_evasion(dataset_pairs, suite_pairs)
     xml = grade_xml(Path(args.rules))
-    report = grade_report(REPORT_PATH)
 
-    total = fp["score"] + detection["score"] + evasion["score"] + xml["score"] + report["score"]
+    total = fp["score"] + detection["score"] + evasion["score"] + xml["score"]
     passed = total >= PASS_THRESHOLD
 
     if args.json:
@@ -297,7 +272,6 @@ def main(argv=None) -> int:
             "lolbas_detection": detection,
             "evasion": evasion,
             "xml": xml,
-            "analyst_report": report,
             "total": round(total, 2),
             "passed": passed,
             "suite": suite_report.summary,
@@ -321,13 +295,12 @@ def main(argv=None) -> int:
     print(f"rules (XML-блок): {args.rules}")
     print(f"manager должен быть запущен с правилами: {Path(args.rules).parent}")
     print()
-    print(line("FP Suppression", fp["score"], 25, f"FP {fp['fp']}/{fp['total']} на шуме; blind-spot {fp['blind_ok']}/{fp['blind_total']}"))
+    print(line("FP Suppression", fp["score"], 30, f"FP {fp['fp']}/{fp['total']} на шуме; blind-spot {fp['blind_ok']}/{fp['blind_total']}"))
     fam = detection["by_family"]
     fam_detail = ", ".join(f"{k} {v[0]}/{v[1]}" for k, v in fam.items())
-    print(line("LOLBAS Detection", detection["score"], 30, f"{detection['detected']}/{detection['total']} ({fam_detail})"))
+    print(line("LOLBAS Detection", detection["score"], 35, f"{detection['detected']}/{detection['total']} ({fam_detail})"))
     print(line("Evasion", evasion["score"], 25, f"{evasion['detected']}/{evasion['total']} edge-кейсов"))
     print(line("XML/Architecture", xml["score"], 10, "; ".join(xml["notes"])))
-    print(line("Analyst Report", report["score"], 10, "; ".join(report["notes"])))
     print()
     print(f"Unit-кейсы (test_suite): {suite_report.summary['passed']}/{suite_report.summary['total']} PASS")
     if dataset_report.summary["errors"] or suite_report.summary["errors"]:
